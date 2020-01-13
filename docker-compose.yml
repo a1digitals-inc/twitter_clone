@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        ports:
+            - "8000:8000"
+        depends_on: 
+            - db_postgres
+        links: 
+            - db_postgres
+    db_postgres:
+        image: postgres:11.4
+        ports:
+        - "5433:5432"
+        environment:
+        - POSTGRES_DB=postgres

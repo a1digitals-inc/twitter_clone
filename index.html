@@ -1,0 +1,31 @@
+<head>
+    <link rel="stylesheet" href="/static/index.css" />
+</head>
+
+<body>
+    <div id="home">
+        <div id="sidebar">
+            <p>Welcome {{.Username}}!</p>
+            <p>User ID: {{.UserId}}</p>
+            <a href="/{{.Username}}">Profile</a>
+            <form action="/logout" method="post">
+                <input type="submit" value="Logout">
+            </form>
+        </div>
+        <div id="tweets">
+            <form action="/tweet" method="post">
+                <textarea id="tweet" name="tweet"></textarea>
+                <input type="submit" value="Tweet">
+            </form>
+            {{range .Tweets}}
+            <div class="tweet">
+                <p class="tweet_username">{{.Username}}</p>
+                <p class="tweet_text">{{.Text}}</p>
+                <p class="tweet_date">{{.Date}}</p>
+                <button class="tweet_like">Like</button>
+                <button class="tweet_retweet">Retweet</button>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</body>
