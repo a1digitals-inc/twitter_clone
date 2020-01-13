@@ -35,6 +35,10 @@ type User struct {
 	Id int64
 }
 
+type LoginPage struct {
+	PasswordFail bool
+}
+
 type IndexPage struct {
 	Tweets []Tweet
 	Username string
@@ -71,12 +75,26 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			Password: r.FormValue("password"),
 		}
 		fmt.Println(login)
-		uid, err := createUser(login.Username, login.Password)
+		user, err := getUserFromUsername(login.Username)
+		var uid int64
 		if err != nil {
-			return
+			// New user
+			uid, err = createUser(login.Username, login.Password)
 		} else {
-			log.Println("New user id: ", uid)
+			// Existing user
+			// Check password
+			if login.Password != user.Password {
+				data := LoginPage{
+					PasswordFail: true,
+				}
+				t, _ := template.ParseFiles("login.html")
+				t.Execute(w, data)
+			} else {
+				uid = user.Id
+			}
 		}
+
+		log.Println("User id: ", uid, "user.Id: ", user.Id)
 
 		session, err := store.Get(r, LOGIN_COOKIE_NAME)
 		if err != nil {
@@ -175,9 +193,22 @@ func TweetHandler(w http.ResponseWriter, r *http.Request) {
 
 func UserHandler(w http.ResponseWriter, r *http.Request) {
 	username := mux.Vars(r)["username"]
+	uid, err := getUserIdFromUsername(username)
+	if err != nil {
+		log.Println("Could not get user ID.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	tweets, err := getHistory(uid)
+	if err != nil {
+		log.Println("Could not get tweets.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	data := UserPage{
 		Username: username,
-		Tweets: nil,
+		Tweets: tweets,
 	}
 	t, _ := template.ParseFiles("user.html")
 	t.Execute(w, data)
@@ -193,12 +224,13 @@ func FollowHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	username := r.FormValue("username")
-	followed, err := getUserFromUsername(username)
+	followed, err := getUserIdFromUsername(username)
 	if err != nil {
 		log.Println("Could not get user ID.\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	fmt.Println("Follower: ", follower, "; Followed: ", followed)
 	_, err = createFollow(followed, follower.(int64))
 	if err != nil {
 		log.Println("Could not follow user.\n", err)
@@ -237,7 +269,7 @@ func initDB() {
 		id serial PRIMARY KEY,
 		username VARCHAR (50) UNIQUE NOT NULL,
 		password VARCHAR (50) NOT NULL,
-		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		created_at timestamptz NOT NULL DEFAULT now()
 		)`)
 	if err != nil {
 		log.Println("Could not create users table.\n", err)
@@ -247,7 +279,7 @@ func initDB() {
 		id serial PRIMARY KEY,
 		text VARCHAR (140) NOT NULL,
 		user_id integer REFERENCES users (id),
-		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		created_at timestamptz NOT NULL DEFAULT now()
 		)`)
 	if err != nil {
 		log.Println("Could not create tweets table.\n", err)
@@ -256,13 +288,21 @@ func initDB() {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS follows(
 		followed integer REFERENCES users ON DELETE CASCADE,
 		follower integer REFERENCES users,
-		created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		created_at timestamptz NOT NULL DEFAULT now(),
 		PRIMARY KEY (followed, follower)
 		)`)
 	if err != nil {
 		log.Println("Could not create follows table.\n", err)
 	}
 
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS retweets(
+		tweet_id integer REFERENCES tweets ON DELETE CASCADE,
+		user_id integer REFERENCES users ON DELETE CASCADE,
+		created_at timestamp NOT NULL DEFAULT now()
+		)`)
+	if err != nil {
+		log.Println("Could not create retweets table.\n", err)
+	}
 }
 
 func createUser(username, password string) (int64, error) {
@@ -275,7 +315,24 @@ func createUser(username, password string) (int64, error) {
 	return id, nil
 }
 
-func getUserFromUsername(username string) (int64, error) {
+func getUserFromUsername(username string) (User, error) {
+	var password, createdAt string
+	var id int64
+	err := db.QueryRow(`SELECT id, password, created_at FROM users WHERE username = $1`, username).Scan(&id, &password, &createdAt)
+	if err != nil {
+		log.Println("Query Error: ", err)
+		return User{}, err
+	}
+	user := User{
+		Username: username,
+		Password: password,
+		CreatedAt: createdAt,
+		Id: id,
+	}
+	return user, nil
+}
+
+func getUserIdFromUsername(username string) (int64, error) {
 	var id int64
 	err := db.QueryRow(`SELECT id FROM users WHERE username = $1`, username).Scan(&id)
 	if err != nil {
@@ -313,6 +370,42 @@ func getFeed(userId int64) ([]Tweet, error) {
 		ON u.id = t.user_id
 		ORDER BY created_at DESC`, userId)
 	if err != nil {
+		return nil, err
+	}
+	fmt.Println(result)
+	defer result.Close()
+
+	var tweets []Tweet
+	for result.Next() {
+		var id int64
+		var text string
+		var createdAt string
+		var username string
+		err := result.Scan(&id, &text, &createdAt, &username)
+		if err != nil {
+			log.Println("Scanning error: ", err)
+			break
+		}
+		tweet := Tweet{
+			Id: id,
+			Text: text,
+			Username: username,
+			Date: createdAt,
+		}
+		tweets = append(tweets, tweet)
+	}
+	return tweets, nil
+}
+
+func getHistory(userId int64) ([]Tweet, error) {
+	result, err := db.Query(`SELECT t.id, t.text, r.created_at, u.username
+		FROM tweets t
+		INNER JOIN retweets r
+		ON ((r.user_id = $1 AND r.tweet_id = t.id)
+		OR (t.user_id = $1))
+		INNER JOIN users u
+		ON u.id = t.user_id`, userId)
+		if err != nil {
 		return nil, err
 	}
 	fmt.Println(result)

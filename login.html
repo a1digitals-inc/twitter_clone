@@ -1,9 +1,16 @@
 <div>
     <form action="/login" method="post">
-        <label for="username">Username</label>
-        <input id="username" name="username" type="text">
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password">
+        <div>
+            <label for="username">Username</label>
+            <input id="username" name="username" type="text">
+        </div>
+        <div>
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password">
+            {{if .PasswordFail}}
+            <p>Incorrect password</p>
+            {{end}}
+        </div>
         <input type="submit" value="Login">
     </form>
 </div>
