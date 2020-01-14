@@ -1,0 +1,16 @@
+{{define "home"}}
+{{template "header" .}}
+
+<div id="home">
+    <nav id="sidebar">
+        <p>Welcome {{.Username}}!</p>
+        <p>User ID: {{.UserId}}</p>
+        <a href="#0"><span class="emoji_icon">📧</span>Notifications</a>
+        <a href="#0">Messages</a>
+        <a href="/{{.Username}}">Profile</a>
+        <form action="/logout" method="post">
+            <input class="primary_button" type="submit" value="Logout">
+        </form>
+    </nav>
+    <main>
+        {{end}}

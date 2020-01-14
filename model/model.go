@@ -133,6 +133,25 @@ func CreateTweet(request TweetRequest) (int64, error) {
 	return id, nil
 }
 
+func GetTweet(tweetId int64) (Tweet, error) {
+	var text, date, username string
+	err := db.QueryRow(`SELECT t.text, t.created_at, u.username
+		FROM tweets t
+		INNER JOIN users u
+		ON t.user_id = u.id AND t.id = $1`, tweetId).Scan(&text, &date, &username)
+	if err != nil {
+		log.Println("Query Error: ", err)
+		return Tweet{}, err
+	}
+	tweet := Tweet{
+		Id: tweetId,
+		Username: username,
+		Text: text,
+		Date: date,
+	}
+	return tweet, nil
+}
+
 func CreateFollow(followed, follower int64) (bool, error) {
 	_, err := db.Exec(`INSERT INTO follows (followed, follower) VALUES($1, $2)`, followed, follower)
 	if err != nil {

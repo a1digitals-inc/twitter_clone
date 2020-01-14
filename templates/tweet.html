@@ -1,0 +1,23 @@
+{{template "home" .}}
+
+<article id="tweet_detail">
+    {{with .Tweet}}
+    <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a>
+    <p class="tweet_text">{{.Text}}</p>
+    <span class="tweet_date">{{.Date}}</span>
+    <div class="tweet_actions_bar">
+        <form action="/like" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input type="submit" value="Like">
+        </form>
+        <form action="/retweet" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input type="submit" value="Retweet">
+        </form>
+    </div>
+    {{else}}
+    <p>This tweet has been deleted.</p>
+    {{end}}
+</article>
+
+{{template "home_footer" .}}

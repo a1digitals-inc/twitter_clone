@@ -1,0 +1,24 @@
+{{template "home" .}}
+<form id="tweet_form" action="/tweet" method="post">
+    <textarea id="tweet" name="tweet" placeholder="What's happening?"></textarea>
+    <input class="primary_button" id="submit_tweet" type="submit" value="Tweet">
+</form>
+{{range .Tweets}}
+<div class="tweet">
+    <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a><span class="tweet_date"> *
+        {{.Date}}</span>
+    <p class="tweet_text">{{.Text}}</p>
+    <div class="tweet_actions_bar">
+        <a href="/tweet/{{.Id}}">Replies</a>
+        <form action="/like" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input id="like_button" type="submit" value="Like">
+        </form>
+        <form action="/retweet" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input id="retweet_button" type="submit" value="Retweet">
+        </form>
+    </div>
+</div>
+{{end}}
+{{template "home_footer" .}}

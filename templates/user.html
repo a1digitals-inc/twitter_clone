@@ -1,0 +1,27 @@
+{{template "header" .}}
+<h1>{{.Username}}</h1>
+<form action="/follow" method="post">
+    <input type="hidden" id="username" name="username" value="{{.Username}}">
+    <input type="submit" value="Follow">
+</form>
+{{range .Tweets}}
+<div class="tweet">
+    {{if ne .Username $.Username}}
+    <p>{{$.Username}} retweeted:</p>
+    {{end}}
+    <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a>
+    <p class="tweet_text">{{.Text}}</p>
+    <p class="tweet_date">{{.Date}}</p>
+    <div class="tweet_actions_bar">
+        <form action="/like" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input type="submit" value="Like">
+        </form>
+        <form action="/retweet" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input type="submit" value="Retweet">
+        </form>
+    </div>
+</div>
+{{end}}
+{{template "footer" .}}

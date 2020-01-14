@@ -24,11 +24,21 @@ type IndexPage struct {
 	Tweets []model.Tweet
 	Username string
 	UserId int64
+	Title string
 }
 
 type UserPage struct {
 	Username string
 	Tweets []model.Tweet
+	Title string
+}
+
+type TweetPage struct {
+	Tweet model.Tweet
+	Replies []model.Tweet
+	Username string
+	UserId int64
+	Title string
 }
 
 const (
@@ -36,6 +46,7 @@ const (
 )
 
 var store = sessions.NewCookieStore([]byte("SECRET"))
+var templates = template.Must(template.ParseGlob("templates/*.html"))
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
@@ -47,8 +58,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		t, _ := template.ParseFiles("login.html")
-		t.Execute(w, nil)
+		templates.ExecuteTemplate(w, "login.html", nil)
 	} else {
 		login := LoginCreds{
 			Username: r.FormValue("username"),
@@ -67,8 +77,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 				data := LoginPage{
 					PasswordFail: true,
 				}
-				t, _ := template.ParseFiles("login.html")
-				t.Execute(w, data)
+				templates.ExecuteTemplate(w, "login.html", data)
 			} else {
 				uid = user.Id
 			}
@@ -136,11 +145,11 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		Tweets: tweets,
 		Username: username.(string),
 		UserId: uid.(int64),
+		Title: "Home",
 	}
 	fmt.Println(data)
 
-	t, _ := template.ParseFiles("index.html")
-	t.Execute(w, data)
+	templates.ExecuteTemplate(w, "index.html", data)
 }
 
 func TweetHandler(w http.ResponseWriter, r *http.Request) {
@@ -169,7 +178,39 @@ func TweetHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 		return
 	} else {
+		session, _ := store.Get(r, LOGIN_COOKIE_NAME)
+
+		// Check if user is authenticated
+		uid, ok := session.Values["uid"]
+		if ok == false {
+			http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+			return
+		}
+		username, _ := session.Values["username"]
+
 		// Render tweet.html with tweet replies
+		tweetId, err := strconv.ParseInt(mux.Vars(r)["tweet_id"], 10, 64)
+		if err != nil {
+			log.Println("Invalid tweet ID: ", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		tweet, err := model.GetTweet(tweetId)
+		if err != nil {
+			log.Println("Could not get tweet.\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		title := fmt.Sprintf("%v on Twitter: %q", tweet.Username, tweet.Text)
+		data := TweetPage{
+			Tweet: tweet,
+			Replies: nil,
+			Username: username.(string),
+			UserId: uid.(int64),
+			Title: title,
+		}
+		templates.ExecuteTemplate(w, "tweet.html", data)
 	}
 }
 
@@ -191,9 +232,10 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 	data := UserPage{
 		Username: username,
 		Tweets: tweets,
+		Title: username,
 	}
-	t, _ := template.ParseFiles("user.html")
-	t.Execute(w, data)
+
+	templates.ExecuteTemplate(w, "user.html", data)
 }
 
 func FollowHandler(w http.ResponseWriter, r *http.Request) {
@@ -290,6 +332,7 @@ func main() {
 	r.HandleFunc("/login", LoginHandler)
 	r.HandleFunc("/logout", LogoutHandler)
 	r.HandleFunc("/tweet", TweetHandler)
+	r.HandleFunc("/tweet/{tweet_id}", TweetHandler)
 	r.HandleFunc("/follow", FollowHandler)
 	r.HandleFunc("/retweet", RetweetHandler)
 	r.HandleFunc("/like", LikeHandler)
