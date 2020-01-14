@@ -14,16 +14,24 @@
         </div>
         <div id="tweets">
             <form action="/tweet" method="post">
-                <textarea id="tweet" name="tweet"></textarea>
+                <textarea id="tweet" name="tweet" placeholder="What's happening?"></textarea>
                 <input type="submit" value="Tweet">
             </form>
             {{range .Tweets}}
             <div class="tweet">
-                <p class="tweet_username">{{.Username}}</p>
+                <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a><span class="tweet_date">*
+                    {{.Date}}</span>
                 <p class="tweet_text">{{.Text}}</p>
-                <p class="tweet_date">{{.Date}}</p>
-                <button class="tweet_like">Like</button>
-                <button class="tweet_retweet">Retweet</button>
+                <div class="tweet_actions_bar">
+                    <form action="/like" method="post">
+                        <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+                        <input type="submit" value="Like">
+                    </form>
+                    <form action="/retweet" method="post">
+                        <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+                        <input type="submit" value="Retweet">
+                    </form>
+                </div>
             </div>
             {{end}}
         </div>
