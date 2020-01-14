@@ -1,20 +1,33 @@
 {{template "header"}}
 
-<div>
-    <form action="/login" method="post">
-        <div>
-            <label for="username">Username</label>
-            <input id="username" name="username" type="text">
+<div id="login_container">
+    <div id="communication_block">
+        <ul>
+            <li>Follow your interests.</li>
+            <li>Hear what people are talking about.</li>
+            <li>Join the conversation.</li>
+        </ul>
+    </div>
+    <div id="utility_block">
+        <form id="login_form" action="/login" method="post">
+            <div id="login_username">
+                <label for="username">Username</label>
+                <input id="username" name="username" type="text">
+            </div>
+            <div id="login_password">
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password">
+                {{if .PasswordFail}}
+                <p>Incorrect password</p>
+                {{end}}
+            </div>
+            <input id="login_button" class="primary_button" type="submit" value="Login">
+        </form>
+        <div id="signup_block">
+            <h2>See what's happening in the world right now.</h2>
+            <h3>Join Twitter today.</h3>
         </div>
-        <div>
-            <label for="password">Password</label>
-            <input id="password" name="password" type="password">
-            {{if .PasswordFail}}
-            <p>Incorrect password</p>
-            {{end}}
-        </div>
-        <input type="submit" value="Login">
-    </form>
+    </div>
 </div>
 
 {{template "footer"}}

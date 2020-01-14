@@ -1,5 +1,7 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    margin: 0;
+    padding: 0;
 }
 
 input[type="submit"] {
@@ -91,12 +93,75 @@ a.tweet {
     display: inline-block;
 }
 
-.primary_button {
+.primary_button, .secondary_button {
     border-bottom-left-radius: 9999px;
     border-bottom-right-radius: 9999px;
     border-top-left-radius: 9999px;
     border-top-right-radius: 9999px;
+    padding-top: 0.7em;
+    padding-bottom: 0.7em;
+}
+
+.primary_button {
     background-color: rgb(29, 161, 242);
     color: white;
     border: none;
+}
+
+.secondary_button {
+    background-color: white;
+    border: 1px solid rgb(29, 161, 242);
+}
+
+#login_container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+}
+
+#login_container #communication_block,
+#login_container #utility_block,
+#login_container #signup_block {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#login_container #communication_block {
+    align-items: center;
+    justify-content: center;
+    background-color: rgb(29, 161, 242);
+    color: white;
+}
+
+#login_container #utility_block {
+    justify-content: start;
+    align-items: center;
+}
+
+#login_container #signup_block {
+    width: 50%;
+    justify-content: center;
+    text-align: left;
+}
+
+#login_container ul {
+    list-style-type: none;
+    padding-inline-start: 0;
+}
+
+#login_container ul li {
+    padding-top: 1em;
+    padding-bottom: 1em;
+}
+
+#login_button {
+    font-size: 15px;
+}
+
+#login_container #login_form {
+    display: flex;
+    flex-direction: row;
+    padding-top: 2em;
 }

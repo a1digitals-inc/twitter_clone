@@ -4,7 +4,7 @@
     <input class="primary_button" id="submit_tweet" type="submit" value="Tweet">
 </form>
 {{range .Tweets}}
-<div class="tweet">
+<article class="tweet">
     <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a><span class="tweet_date"> *
         {{.Date}}</span>
     <p class="tweet_text">{{.Text}}</p>
@@ -19,6 +19,6 @@
             <input id="retweet_button" type="submit" value="Retweet">
         </form>
     </div>
-</div>
+</article>
 {{end}}
 {{template "home_footer" .}}
