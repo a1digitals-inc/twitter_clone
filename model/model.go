@@ -236,14 +236,21 @@ func GetFeed(userId int64) ([]Tweet, error) {
 	return tweets, nil
 }
 
-func GetHistory(userId int64) ([]Tweet, error) {
-	result, err := db.Query(`SELECT t.id, t.text, r.created_at, u.username
+func GetHistory(userId, currentUserId int64) ([]Tweet, error) {
+	result, err := db.Query(`SELECT t.id, t.text, u.username, t.created_at,
+		(l.tweet_id IS NOT NULL) AS liked,
+		(e.tweet_id IS NOT NULL) AS retweeted
 		FROM tweets t
-		INNER JOIN retweets r
-		ON ((r.user_id = $1 AND r.tweet_id = t.id)
-		OR (t.user_id = $1))
-		INNER JOIN users u
-		ON u.id = t.user_id`, userId)
+		LEFT JOIN retweets r
+		ON r.tweet_id = t.id
+		LEFT JOIN users u 
+		ON t.user_id = u.id 
+		LEFT JOIN likes l
+		ON l.tweet_id = t.id AND l.user_id = $2
+		LEFT JOIN retweets e
+		ON e.user_id = $2 AND e.tweet_id = t.id
+		WHERE r.user_id = $1 OR t.user_id = $1 
+		ORDER BY t.created_at DESC`, userId, currentUserId)
 		if err != nil {
 		return nil, err
 	}
@@ -253,10 +260,9 @@ func GetHistory(userId int64) ([]Tweet, error) {
 	var tweets []Tweet
 	for result.Next() {
 		var id int64
-		var text string
-		var createdAt string
-		var username string
-		err := result.Scan(&id, &text, &createdAt, &username)
+		var text, username, createdAt string
+		var liked, retweeted bool
+		err := result.Scan(&id, &text, &username, &createdAt, &liked, &retweeted)
 		if err != nil {
 			log.Println("Scanning error: ", err)
 			break
@@ -266,6 +272,8 @@ func GetHistory(userId int64) ([]Tweet, error) {
 			Text: text,
 			Username: username,
 			Date: createdAt,
+			Liked: liked,
+			Retweeted: retweeted,
 		}
 		tweets = append(tweets, tweet)
 	}

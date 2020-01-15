@@ -15,7 +15,7 @@
         {{if .Liked}}
         <form action="/unlike" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="like_button" type="image" src="/static/heart_filled.png" alt="Unlike">
+            <input id="like_button" class="undo" type="image" src="/static/heart_filled.png" alt="Unlike">
         </form>
         {{else}}
         <form action="/like" method="post">
@@ -26,7 +26,7 @@
         {{if .Retweeted}}
         <form action="/unretweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" type="image" src="/static/retweet_filled.png" alt="Retweet">
+            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Retweet">
         </form>
         {{else}}
         <form action="/retweet" method="post">

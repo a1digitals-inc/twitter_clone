@@ -224,12 +224,6 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	tweets, err := model.GetHistory(thisUid)
-	if err != nil {
-		log.Println("Could not get tweets.\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	session, _ := store.Get(r, LOGIN_COOKIE_NAME)
 
@@ -240,6 +234,13 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	username, _ := session.Values["username"]
+
+	tweets, err := model.GetHistory(thisUid, uid.(int64))
+	if err != nil {
+		log.Println("Could not get tweets.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	data := UserPage{
 		ThisUsername: thisUsername,
