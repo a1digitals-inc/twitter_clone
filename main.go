@@ -28,8 +28,11 @@ type IndexPage struct {
 }
 
 type UserPage struct {
-	Username string
+	ThisUsername string
+	ThisUserId int64
 	Tweets []model.Tweet
+	Username string
+	UserId int64
 	Title string
 }
 
@@ -95,7 +98,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		session.Values["username"] = login.Username
 		session.Options = &sessions.Options{
 			Path:     "/",
-			MaxAge:   600,
 			HttpOnly: true,
 		}
 		
@@ -196,7 +198,7 @@ func TweetHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tweet, err := model.GetTweet(tweetId)
+		tweet, err := model.GetTweet(tweetId, uid.(int64))
 		if err != nil {
 			log.Println("Could not get tweet.\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -215,24 +217,37 @@ func TweetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func UserHandler(w http.ResponseWriter, r *http.Request) {
-	username := mux.Vars(r)["username"]
-	uid, err := model.GetUserIdFromUsername(username)
+	thisUsername := mux.Vars(r)["username"]
+	thisUid, err := model.GetUserIdFromUsername(thisUsername)
 	if err != nil {
 		log.Println("Could not get user ID.\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	tweets, err := model.GetHistory(uid)
+	tweets, err := model.GetHistory(thisUid)
 	if err != nil {
 		log.Println("Could not get tweets.\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	session, _ := store.Get(r, LOGIN_COOKIE_NAME)
+
+	// Check if user is authenticated
+	uid, ok := session.Values["uid"]
+	if ok == false {
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+		return
+	}
+	username, _ := session.Values["username"]
+
 	data := UserPage{
-		Username: username,
+		ThisUsername: thisUsername,
+		ThisUserId: thisUid,
 		Tweets: tweets,
-		Title: username,
+		Username: username.(string),
+		UserId: uid.(int64),
+		Title: thisUsername,
 	}
 
 	templates.ExecuteTemplate(w, "user.html", data)
@@ -319,7 +334,7 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 }

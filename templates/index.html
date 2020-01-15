@@ -9,15 +9,31 @@
         {{.Date}}</span>
     <p class="tweet_text">{{.Text}}</p>
     <div class="tweet_actions_bar">
-        <a href="/tweet/{{.Id}}">Replies</a>
+        <a href="/tweet/{{.Id}}">
+            <img id="replies_button" alt="Replies" src="/static/replies.png" />
+        </a>
+        {{if .Liked}}
+        <form action="/unlike" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input id="like_button" type="image" src="/static/heart_filled.png" alt="Unlike">
+        </form>
+        {{else}}
         <form action="/like" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="like_button" type="submit" value="Like">
+            <input id="like_button" type="image" src="/static/heart.png" alt="Like">
         </form>
+        {{end}}
+        {{if .Retweeted}}
+        <form action="/unretweet" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input id="retweet_button" type="image" src="/static/retweet_filled.png" alt="Retweet">
+        </form>
+        {{else}}
         <form action="/retweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" type="submit" value="Retweet">
+            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Retweet">
         </form>
+        {{end}}
     </div>
 </article>
 {{end}}

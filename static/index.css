@@ -35,6 +35,10 @@ nav a:hover {
     background-color: rgb(232,246,254);
 }
 
+nav .secondary_button {
+    width: 100%;
+}
+
 #tweet_form {
     display: flex;
     flex-direction: column;
@@ -52,8 +56,6 @@ nav a:hover {
 #home main {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
     flex-grow: 1;
     width: 100vw;
     max-width: 600px;
@@ -68,6 +70,7 @@ a.tweet {
     border-bottom: 1px solid rgb(230, 236, 240);
     transition-property: "background-color";
     transition-duration: 0.2s;
+    padding: 0.7em;
 }
 
 .tweet:hover {
@@ -100,6 +103,8 @@ a.tweet {
     border-top-right-radius: 9999px;
     padding-top: 0.7em;
     padding-bottom: 0.7em;
+    padding-left: 0.7em;
+    padding-right: 0.7em;
 }
 
 .primary_button {
@@ -118,6 +123,7 @@ a.tweet {
     height: 100vh;
     display: flex;
     flex-direction: row;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 #login_container #communication_block,
@@ -158,6 +164,7 @@ a.tweet {
 
 #login_button {
     font-size: 15px;
+    align-self: flex-end;
 }
 
 #login_container #login_form {
@@ -165,3 +172,22 @@ a.tweet {
     flex-direction: row;
     padding-top: 2em;
 }
+
+#login_container #login_form #login_username,
+#login_container #login_form #login_password {
+    display: flex;
+    flex-direction: column;
+}
+
+#login_container #username,
+#login_container #password {
+    font-size: 15px;
+}
+
+#like_button, 
+#retweet_button,
+#replies_button {
+  height: 15px;
+  width: auto;
+}
+

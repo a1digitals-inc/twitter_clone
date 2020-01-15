@@ -17,6 +17,8 @@ type Tweet struct {
 	Username string
 	Text string
 	Date string
+	Liked bool
+	Retweeted bool
 }
 
 type User struct {
@@ -133,12 +135,19 @@ func CreateTweet(request TweetRequest) (int64, error) {
 	return id, nil
 }
 
-func GetTweet(tweetId int64) (Tweet, error) {
+func GetTweet(tweetId, userId int64) (Tweet, error) {
 	var text, date, username string
-	err := db.QueryRow(`SELECT t.text, t.created_at, u.username
+	var liked, retweeted bool
+	err := db.QueryRow(`SELECT t.text, t.created_at, u.username,
+		(l.user_id IS NOT NULL) AS liked, 
+		(r.user_id IS NOT NULL) AS retweeted
 		FROM tweets t
 		INNER JOIN users u
-		ON t.user_id = u.id AND t.id = $1`, tweetId).Scan(&text, &date, &username)
+		ON t.user_id = u.id AND t.id = $1
+		LEFT JOIN likes l
+        ON l.user_id = $2 AND l.tweet_id = $1
+        LEFT JOIN retweets r
+        ON r.user_id = $2 AND r.tweet_id = $1`, tweetId, userId).Scan(&text, &date, &username, &liked, &retweeted)
 	if err != nil {
 		log.Println("Query Error: ", err)
 		return Tweet{}, err
@@ -148,6 +157,8 @@ func GetTweet(tweetId int64) (Tweet, error) {
 		Username: username,
 		Text: text,
 		Date: date,
+		Liked: liked,
+		Retweeted: retweeted,
 	}
 	return tweet, nil
 }
@@ -180,13 +191,19 @@ func CreateLike(userId, tweetId int64) (bool, error) {
 }
 
 func GetFeed(userId int64) ([]Tweet, error) {
-	result, err := db.Query(`SELECT t.id, t.text, t.created_at, u.username 
+	result, err := db.Query(`SELECT t.id, t.text, t.created_at, u.username, 
+		(l.user_id IS NOT NULL) AS liked, 
+		(r.user_id IS NOT NULL) AS retweeted
 		FROM tweets t
 		INNER JOIN follows f 
 		ON t.user_id = f.followed AND f.follower = $1
 		INNER JOIN users u
 		ON u.id = t.user_id
-		ORDER BY created_at DESC`, userId)
+        FULL JOIN likes l
+		ON l.tweet_id = t.id AND l.user_id = $1
+		FULL JOIN retweets r
+        ON r.tweet_id = t.id AND r.user_id = $1
+		ORDER BY t.created_at DESC;`, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +216,9 @@ func GetFeed(userId int64) ([]Tweet, error) {
 		var text string
 		var createdAt string
 		var username string
-		err := result.Scan(&id, &text, &createdAt, &username)
+		var liked bool
+		var retweeted bool
+		err := result.Scan(&id, &text, &createdAt, &username, &liked, &retweeted)
 		if err != nil {
 			log.Println("Scanning error: ", err)
 			break
@@ -209,6 +228,8 @@ func GetFeed(userId int64) ([]Tweet, error) {
 			Text: text,
 			Username: username,
 			Date: createdAt,
+			Liked: liked,
+			Retweeted: retweeted,
 		}
 		tweets = append(tweets, tweet)
 	}
