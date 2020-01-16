@@ -19,6 +19,9 @@
     <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a><span class="tweet_date secondary_text"> ·
         {{.Date}}</span>
     <p class="tweet_text">{{.Text}}</p>
+    {{if .ImageURL}}
+    <img class="tweet_image" src="{{.ImageURL}}" />
+    {{end}}
     <div class="tweet_actions_bar">
         <a href="/tweet/{{.Id}}">
             <img id="replies_button" alt="Replies" src="/static/replies.png" />
