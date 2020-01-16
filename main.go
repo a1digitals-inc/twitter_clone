@@ -31,6 +31,7 @@ type UserPage struct {
 	ThisUsername string
 	ThisUserId int64
 	Tweets []model.Tweet
+	CrossUsers model.CrossUsers
 	Username string
 	UserId int64
 	Title string
@@ -39,6 +40,15 @@ type UserPage struct {
 type TweetPage struct {
 	Tweet model.Tweet
 	Replies []model.Tweet
+	Username string
+	UserId int64
+	Title string
+}
+
+type UserEditPage struct {
+	Bio string
+	Website string
+	Location string
 	Username string
 	UserId int64
 	Title string
@@ -204,7 +214,7 @@ func TweetHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		title := fmt.Sprintf("%v on Twitter: %q", tweet.Username, tweet.Text)
+		title := fmt.Sprintf("%v on Gwitter: %q", tweet.Username, tweet.Text)
 		data := TweetPage{
 			Tweet: tweet,
 			Replies: nil,
@@ -242,10 +252,18 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	crossUsers, err := model.GetUsersRelationship(thisUid, uid.(int64))
+		if err != nil {
+		log.Println("Could not get user relationship.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	data := UserPage{
 		ThisUsername: thisUsername,
 		ThisUserId: thisUid,
 		Tweets: tweets,
+		CrossUsers: crossUsers,
 		Username: username.(string),
 		UserId: uid.(int64),
 		Title: thisUsername,
@@ -340,6 +358,32 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func UserEditHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := store.Get(r, LOGIN_COOKIE_NAME)
+	// Check if user is authenticated
+	uid, ok := session.Values["uid"]
+	if ok == false {
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+		return
+	}
+	username, _ := session.Values["username"]
+
+	if mux.Vars(r)["username"] != username {
+		http.Redirect(w, r, fmt.Sprintf("/%s", mux.Vars(r)["username"]), http.StatusMovedPermanently)
+		return
+	}
+
+	data := UserEditPage{
+		Bio: "This is my bio.",
+		Website: "https://dustinnewman.io",
+		Username: username.(string),
+		UserId: uid.(int64),
+		Title: "Edit your profile",
+	}
+
+	templates.ExecuteTemplate(w, "user_edit.html", data)
+}
+
 func main() {
 	model.InitDB()
 
@@ -353,6 +397,7 @@ func main() {
 	r.HandleFunc("/retweet", RetweetHandler)
 	r.HandleFunc("/like", LikeHandler)
 	r.HandleFunc("/{username}", UserHandler)
+	r.HandleFunc("/{username}/edit", UserEditHandler)
 	r.HandleFunc("/", IndexHandler)
 	log.Fatal(http.ListenAndServe(":8000", r))
 }

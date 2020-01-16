@@ -13,7 +13,7 @@
 @media (prefers-color-scheme: dark) {
     :root {
         --primary: rgb(74, 160, 235);
-        --primary-light: rgb(28, 45, 61);
+        --primary-light: rgb(29, 45, 62);
         --black: white;
         --dark-gray: rgb(136, 153, 166);
         --light-gray: rgb(170, 184, 194);
@@ -37,6 +37,10 @@ body {
     background-color: var(--white);
 }
 
+h2 {
+    font-size: 27px;
+}
+
 input[type="submit"] {
     cursor: pointer;
 }
@@ -45,43 +49,89 @@ input[type="submit"] {
     display: flex;
 }
 
+#home #sidebar,
+#home main {
+    border-right: 1px solid var(--extra-light-gray);
+    height: 100vw;
+    overflow-y: scroll;
+}
+
+#sidebar {
+    padding-left: 110px;
+    padding-right: 70px;
+}
+
+#sidebar,
 nav {
     display: flex;
     flex-direction: column;
-    font-size: 19px;
-    font-weight: bold;
-    padding-left: 20px;
-    padding-right: 20px;
 }
 
-nav a {
+nav {
+    font-size: 19px;
+    font-weight: bold;
+}
+
+#sidebar a {
     border-bottom-left-radius: 9999px;
     border-bottom-right-radius: 9999px;
     border-top-left-radius: 9999px;
     border-top-right-radius: 9999px;
-    padding: 10px;
-    transition-property: "background-color";
+    padding-top: 14px;
+    padding-bottom: 14px;
+    padding-left: 10px;
+    padding-right: 10px;
+    transition-property: background-color;
     transition-duration: 0.2s;
     color: var(--black);
     text-decoration: none;
+    display: flex;
+    justify-content: start;
+    align-items: center;
 }
 
-nav a:hover {
+#sidebar a img {
+    width: 28px;
+    height: auto;
+}
+
+#sidebar nav a img {
+    margin-right: 20px;
+}
+
+#sidebar a:hover {
     background-color: var(--primary-light);
+    color: var(--primary);
 }
 
 nav .secondary_button {
     width: 100%;
 }
 
+#main_header h3 {
+    margin: 0;
+    color: var(--black);
+}
+
 #tweet_form {
     display: flex;
     flex-direction: column;
+    border-bottom: 10px solid var(--extra-light-gray);
+    padding: 0.7em;
 }
 
 #tweet {
     resize: none;
     font-size: 19px;
+    background-color: var(--white);
+    color: var(--black);
+    border: none;
+}
+
+#tweet_form_actions_bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
 }
 
 #submit_tweet {
@@ -100,21 +150,39 @@ a.tweet {
     display: block;
 }
 
-.tweet {
+.tweet, 
+#main_header {
     width: 100%;
     border-bottom: 1px solid var(--extra-light-gray);
-    transition-property: "background-color";
-    transition-duration: 0.2s;
     padding: 0.7em;
     box-sizing: border-box
+}
+
+.tweet {
+    transition-property: "background-color";
+    transition-duration: 0.2s;
 }
 
 .tweet:hover {
     background-color: var(--extra-extra-light-gray);
 }
 
-.tweet_username, .tweet_date {
+.tweet_text {
+    color: var(--black);
+}
+
+.tweet_username {
+    color: var(--black);
+    font-weight: bold;
+}
+
+.primary_text {
+    color: var(--black);
+}
+
+.secondary_text {
     color: var(--dark-gray);
+    font-weight: normal;
 }
 
 .tweet_text {
@@ -125,7 +193,7 @@ a.tweet {
 
 .tweet_actions_bar {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
 }
 
 .tweet_actions_bar form {
@@ -152,8 +220,23 @@ a.tweet {
 
 .secondary_button {
     background-color: var(--white);
+    color: var(--black);
     border: 1px solid var(--primary);
     font-size: 15px;
+}
+
+#like_button, 
+#retweet_button,
+#replies_button {
+  height: 15px;
+  width: auto;
+}
+
+#user_info_bar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
 }
 
 #login_container {
@@ -182,6 +265,8 @@ a.tweet {
 #login_container #utility_block {
     justify-content: start;
     align-items: center;
+    background-color: var(--white);
+    color: var(--black);
 }
 
 #login_container #signup_block {
@@ -220,13 +305,6 @@ a.tweet {
 #login_container #username,
 #login_container #password {
     font-size: 15px;
-}
-
-#like_button, 
-#retweet_button,
-#replies_button {
-  height: 15px;
-  width: auto;
 }
 
 @media only screen and (max-width: 1024px) {

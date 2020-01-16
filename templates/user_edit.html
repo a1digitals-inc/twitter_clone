@@ -1,0 +1,6 @@
+{{template "home" .}}
+<h1>{{.Username}}</h1>
+<form action="/follow" method="post">
+    <input type="hidden" id="username" name="username" value="{{.Username}}">
+</form>
+{{template "home_footer" .}}

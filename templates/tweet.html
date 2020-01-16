@@ -4,7 +4,7 @@
     {{with .Tweet}}
     <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a>
     <p class="tweet_text">{{.Text}}</p>
-    <p class="tweet_date">{{.Date}}</p>
+    <p class="tweet_date secondary_text">{{.Date}}</p>
     <div class="tweet_actions_bar">
         {{if .Liked}}
         <form action="/unlike" method="post">
@@ -20,12 +20,12 @@
         {{if .Retweeted}}
         <form action="/unretweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Retweet">
+            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo regweet">
         </form>
         {{else}}
         <form action="/retweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Retweet">
+            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Regweet">
         </form>
         {{end}}
     </div>

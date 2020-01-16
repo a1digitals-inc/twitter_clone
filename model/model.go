@@ -28,6 +28,12 @@ type User struct {
 	Id int64
 }
 
+type CrossUsers struct {
+	Followers int64
+	Follows int64
+	SecondFollowsFirst bool
+}
+
 var db *sql.DB
 
 func InitDB() {
@@ -125,6 +131,28 @@ func GetUserIdFromUsername(username string) (int64, error) {
 	return id, nil
 }
 
+func GetUsersRelationship(userId, currentUserId int64) (CrossUsers, error) {
+	var followers, follows int64
+	var secondFollowsFirst bool
+	err := db.QueryRow(`SELECT 
+		COUNT(*) FILTER (WHERE f.followed = $1) as followers,
+		COUNT(*) FILTER (WHERE f.follower = $1) as follows,
+		COUNT(*) FILTER (WHERE f.follower = $2 AND f.followed = $1) = 1 as dnf
+		FROM follows f
+		WHERE $1 IN (f.followed, f.follower)`, userId, currentUserId).Scan(&followers, &follows, &secondFollowsFirst)
+	if err != nil {
+		log.Println("Query Error: ", err)
+		return CrossUsers{}, err
+	}
+
+	crossUsers := CrossUsers{
+		Followers: followers,
+		Follows: follows,
+		SecondFollowsFirst: secondFollowsFirst,
+	}
+	return crossUsers, nil
+}
+
 func CreateTweet(request TweetRequest) (int64, error) {
 	var id int64
 	err := db.QueryRow(`INSERT INTO tweets (text, user_id) VALUES ($1, $2) RETURNING id`, request.Text, request.UserId).Scan(&id)
@@ -202,8 +230,9 @@ func GetFeed(userId int64) ([]Tweet, error) {
         FULL JOIN likes l
 		ON l.tweet_id = t.id AND l.user_id = $1
 		FULL JOIN retweets r
-        ON r.tweet_id = t.id AND r.user_id = $1
-		ORDER BY t.created_at DESC;`, userId)
+		ON r.tweet_id = t.id AND r.user_id = $1
+		WHERE t.id IS NOT NULL
+		ORDER BY t.created_at DESC`, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -213,11 +242,8 @@ func GetFeed(userId int64) ([]Tweet, error) {
 	var tweets []Tweet
 	for result.Next() {
 		var id int64
-		var text string
-		var createdAt string
-		var username string
-		var liked bool
-		var retweeted bool
+		var text, createdAt, username string
+		var liked, retweeted bool
 		err := result.Scan(&id, &text, &createdAt, &username, &liked, &retweeted)
 		if err != nil {
 			log.Println("Scanning error: ", err)
