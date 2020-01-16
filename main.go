@@ -364,6 +364,7 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	model.InitDB()
+	api.Init()
 
 	r := mux.NewRouter()
 	s := r.PathPrefix("/api").Subrouter()

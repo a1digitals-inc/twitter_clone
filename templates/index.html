@@ -2,13 +2,16 @@
 <div id="main_header">
     <h3>Home</h3>
 </div>
-<form id="tweet_form" action="/api/tweet" method="post">
+<form id="tweet_form" action="/api/tweet" enctype="multipart/form-data" method="post">
     <textarea maxlength="140" id="tweet" name="tweet" placeholder="What's happening?"></textarea>
     <div id="tweet_form_actions_bar">
-        <div id="tweet_form_char_count">
-            <noscript>140</noscript>
+        <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/gif,video/mp4" />
+        <div>
+            <div id="tweet_form_char_count">
+                <noscript>140</noscript>
+            </div>
+            <input class="primary_button" id="submit_tweet" type="submit" value="Gweet">
         </div>
-        <input class="primary_button" id="submit_tweet" type="submit" value="Gweet">
     </div>
 </form>
 {{range .Tweets}}

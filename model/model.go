@@ -10,12 +10,14 @@ import (
 type TweetRequest struct {
 	UserId int64
 	Text string
+	ImageURL string
 }
 
 type Tweet struct {
 	Id int64
 	Username string
 	Text string
+	ImageURL string
 	Date string
 	Liked bool
 	Retweeted bool
@@ -75,6 +77,7 @@ func InitDB() {
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS tweets(
 		id serial PRIMARY KEY,
 		text VARCHAR (140) NOT NULL,
+		image_url TEXT,
 		user_id integer REFERENCES users (id),
 		created_at timestamptz NOT NULL DEFAULT now()
 		)`)
@@ -201,7 +204,7 @@ func EditUser(edits User) error {
 
 func CreateTweet(request TweetRequest) (int64, error) {
 	var id int64
-	err := db.QueryRow(`INSERT INTO tweets (text, user_id) VALUES ($1, $2) RETURNING id`, request.Text, request.UserId).Scan(&id)
+	err := db.QueryRow(`INSERT INTO tweets (text, user_id, image_url) VALUES ($1, $2, $3) RETURNING id`, request.Text, request.UserId, request.ImageURL).Scan(&id)
 	if err != nil {
 		log.Println("Query Error: ", err)
 		return 0, err
@@ -211,9 +214,9 @@ func CreateTweet(request TweetRequest) (int64, error) {
 
 func GetTweet(tweetId, userId int64) (Tweet, error) {
 	var text, date, username string
-	var displayName sql.NullString
+	var imageURL, displayName sql.NullString
 	var liked, retweeted bool
-	err := db.QueryRow(`SELECT t.text, t.created_at, u.username,
+	err := db.QueryRow(`SELECT t.text, t.created_at, t.image_url, u.username,
 		(l.user_id IS NOT NULL) AS liked, 
 		(r.user_id IS NOT NULL) AS retweeted,
 		u.display_name
@@ -224,7 +227,7 @@ func GetTweet(tweetId, userId int64) (Tweet, error) {
         ON l.user_id = $2 AND l.tweet_id = $1
         LEFT JOIN retweets r
 		ON r.user_id = $2 AND r.tweet_id = $1`, 
-	tweetId, userId).Scan(&text, &date, &username, &liked, &retweeted, &displayName)
+	tweetId, userId).Scan(&text, &date, &imageURL, &username, &liked, &retweeted, &displayName)
 	if err != nil {
 		log.Println("Query Error: ", err)
 		return Tweet{}, err
@@ -233,6 +236,7 @@ func GetTweet(tweetId, userId int64) (Tweet, error) {
 		Id: tweetId,
 		Username: username,
 		Text: text,
+		ImageURL: nullStringToString(imageURL),
 		Date: date,
 		Liked: liked,
 		Retweeted: retweeted,

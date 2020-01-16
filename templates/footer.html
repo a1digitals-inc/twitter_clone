@@ -3,7 +3,13 @@
     var tweetCharCount = document.getElementById("tweet_form_char_count");
     var tweetInput = document.getElementById("tweet");
     tweetInput.addEventListener("input", function (e) {
-        tweetCharCount.textContent = String(140 - e.target.value.length);
+        var t_length = 140 - e.target.value.length;
+        tweetCharCount.textContent = String(t_length);
+        if (t_length == 0) {
+            tweetCharCount.style.color = "rgb(224, 36, 94)";
+        } else if (t_length <= 20) {
+            tweetCharCount.style.color = "rgb(255, 173, 31)";
+        }
     });
 </script>
 </body>

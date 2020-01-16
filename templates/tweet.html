@@ -11,6 +11,9 @@
     {{end}}
     <p class="tweet_username secondary_text">{{.Username}}</p>
     <p id="tweet_detail" class="tweet_text">{{.Text}}</p>
+    {{if .ImageURL}}
+    <img class="tweet_image" src="{{.ImageURL}}" />
+    {{end}}
     <p class="tweet_date secondary_text">{{.Date}}</p>
     <div class="tweet_actions_bar">
         {{if .Retweeted}}

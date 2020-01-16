@@ -1,19 +1,75 @@
 package store
 
 import (
+	"io"
+	"path"
+	"os"
 	"log"
 	"fmt"
 	"net/http"
 	"strconv"
+	"context"
 	mux "github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	model "github.com/dustinnewman98/twitter_clone/model"
 	session "github.com/dustinnewman98/twitter_clone/session"
+	storage "cloud.google.com/go/storage"
+	uuid "github.com/gofrs/uuid"
 )
 
 const (
 	LOGIN_COOKIE_NAME = "login"
 )
+
+var bucket *storage.BucketHandle
+var bucketName string = os.Getenv("BUCKET_NAME")
+
+func Init() error {
+	ctx := context.Background()
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Println("Could not create storage client.", err)
+		return err
+	}
+	bucket = client.Bucket(bucketName)
+	return nil
+}
+
+func uploadImage(r *http.Request) (string, error) {
+	ctx := context.Background()
+	f, fh, err := r.FormFile("image")
+
+	if err != nil {
+		return "", err
+	}
+
+	if _, err := bucket.Attrs(ctx); err != nil {
+		fmt.Println("Failed at attrs")
+		return "", err
+	}
+
+	// random filename, retaining existing extension.
+	name := uuid.Must(uuid.NewV4()).String() + path.Ext(fh.Filename)
+
+	w := bucket.Object(name).NewWriter(ctx)
+
+	w.ACL = []storage.ACLRule{{Entity: storage.AllUsers, Role: storage.RoleReader}}
+
+	// // Entries are immutable, be aggressive about caching (1 day).
+	// w.CacheControl = "public, max-age=86400"
+
+	if _, err := io.Copy(w, f); err != nil {
+		fmt.Println("Failed at copy")
+		return "", err
+	}
+
+	if err := w.Close(); err != nil {
+		fmt.Println("Failed at close")
+		return "", err
+	}
+
+	return fmt.Sprintf("https://storage.googleapis.com/%s/%s", bucketName, name), nil
+}
 
 func TweetHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
@@ -29,6 +85,17 @@ func TweetHandler(w http.ResponseWriter, r *http.Request) {
 	tweet := model.TweetRequest{
 		UserId: uid.(int64),
 		Text: r.FormValue("tweet"),
+	}
+
+	if r.MultipartForm.File != nil {
+		fmt.Println("image detected ")
+		image, err := uploadImage(r)
+		if err != nil {
+			log.Println("Could not upload image.", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		tweet.ImageURL = image
 	}
 
 	_, err := model.CreateTweet(tweet)
