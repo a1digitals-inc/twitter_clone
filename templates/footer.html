@@ -1,4 +1,11 @@
 {{define "footer"}}
+<script type="text/javascript">
+    var tweetCharCount = document.getElementById("tweet_form_char_count");
+    var tweetInput = document.getElementById("tweet");
+    tweetInput.addEventListener("input", function (e) {
+        tweetCharCount.textContent = String(140 - e.target.value.length);
+    });
+</script>
 </body>
 
 </html>

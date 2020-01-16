@@ -2,6 +2,7 @@
     color-scheme: light dark;
     --primary: rgb(29, 161, 242);
     --primary-light: rgb(232,246,254);
+    --accent: rgb(202, 32, 85);
     --black: rgb(20, 23, 26);
     --dark-gray: rgb(101, 119, 134);
     --light-gray: rgb(170, 184, 194);
@@ -14,9 +15,10 @@
     :root {
         --primary: rgb(74, 160, 235);
         --primary-light: rgb(29, 45, 62);
+        --accent: rgb(202, 32, 85);
         --black: white;
         --dark-gray: rgb(136, 153, 166);
-        --light-gray: rgb(170, 184, 194);
+        --light-gray: rgb(145, 151, 163);
         --extra-light-gray: rgb(56, 68, 77);
         --extra-extra-light-gray: rgb(28, 39, 51);
         --white: rgb(23, 32, 42);
@@ -25,7 +27,13 @@
     #replies_button,
     #like_button:not(.undo),
     #retweet_button:not(.undo) {
-        filter: invert(50%);
+        filter: invert(60%);
+    }
+
+    #home_icon,
+    #notif_icon,
+    #messages_icon {
+        filter: invert(100%);
     }
 }
 
@@ -39,6 +47,7 @@ body {
 
 h2 {
     font-size: 27px;
+    margin: 0;
 }
 
 input[type="submit"] {
@@ -92,16 +101,33 @@ nav {
 
 #sidebar a img {
     width: 28px;
-    height: auto;
+    height: 28px;
 }
 
 #sidebar nav a img {
+    width: 24px;
+    height: 24px;
     margin-right: 20px;
 }
 
 #sidebar a:hover {
     background-color: var(--primary-light);
     color: var(--primary);
+}
+
+#home_icon,
+#notif_icon,
+#messages_icon {
+    object-fit: cover;
+    object-position: 0 0;
+}
+
+#notif_icon {
+    object-position: center;
+}
+
+#messages_icon {
+    object-position: right;
 }
 
 nav .secondary_button {
@@ -126,6 +152,10 @@ nav .secondary_button {
     background-color: var(--white);
     color: var(--black);
     border: none;
+}
+
+#tweet::placeholder {
+    color: var(--light-gray);
 }
 
 #tweet_form_actions_bar {
@@ -158,9 +188,18 @@ a.tweet {
     box-sizing: border-box
 }
 
+#main_header {
+    padding-top: 1em;
+}
+
+#tweet_detail {
+    font-size: 23px;
+}
+
 .tweet {
     transition-property: "background-color";
     transition-duration: 0.2s;
+    font-size: 15px;
 }
 
 .tweet:hover {
@@ -174,6 +213,7 @@ a.tweet {
 .tweet_username {
     color: var(--black);
     font-weight: bold;
+    margin: 0px;
 }
 
 .primary_text {
@@ -200,7 +240,14 @@ a.tweet {
     display: inline-block;
 }
 
-.primary_button, .secondary_button {
+.retweeted_label {
+    font-size: 13px;
+    margin-bottom: 0.5em;
+    margin-top: 0px;
+}
+
+.primary_button, 
+.secondary_button {
     border-bottom-left-radius: 9999px;
     border-bottom-right-radius: 9999px;
     border-top-left-radius: 9999px;
@@ -215,6 +262,7 @@ a.tweet {
     background-color: var(--primary);
     color: white;
     border: none;
+    font-size: 15px;
     font-weight: bold;
 }
 
@@ -225,6 +273,16 @@ a.tweet {
     font-size: 15px;
 }
 
+a.secondary_button {
+    text-decoration: none;
+}
+
+.destructive_button:hover {
+    background-color: var(--accent);
+    color: white;
+    border: none;
+}
+
 #like_button, 
 #retweet_button,
 #replies_button {
@@ -232,11 +290,51 @@ a.tweet {
   width: auto;
 }
 
+#user_header {
+    padding: 0.7em;
+    border-bottom: 1px solid var(--extra-light-gray);
+}
+
 #user_info_bar {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+}
+
+#user_info_items p,
+#user_info_items a {
+    display: inline-block;
+}
+
+.user_info_website,
+.user_info_website:visited {
+    color: var(--primary);
+}
+
+#user_header p {
+    margin-top: 0px;
+    margin-bottom: 10px;
+}
+
+#user_header #followers {
+    margin-left: 20px;
+}
+
+#user_tweets_or_likes {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
+#user_follows_bar {
+    margin-bottom: 10px;
+}
+
+#user_tweets_or_likes a {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
 }
 
 #login_container {
@@ -305,6 +403,38 @@ a.tweet {
 #login_container #username,
 #login_container #password {
     font-size: 15px;
+}
+
+#user_edit_container {
+    padding: 0.7em;
+}
+
+#user_edit_form {
+    display: flex;
+    flex-direction: column;
+    font-size: 19px;
+    width: 95%;
+}
+
+#user_edit_form div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-bottom: 0.5em;
+}
+
+#user_edit_form input[type="text"],
+#user_edit_form textarea {
+    font-size: 19px;
+    width: 100%;
+}
+
+#user_edit_form textarea#bio {
+    resize: none;
+}
+
+#user_edit_form input[type="submit"] {
+    align-self: flex-end;
 }
 
 @media only screen and (max-width: 1024px) {

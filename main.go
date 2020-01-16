@@ -6,9 +6,12 @@ import (
 	"log"
 	"fmt"
 	"strconv"
+	"database/sql"
 	mux "github.com/gorilla/mux"
 	sessions "github.com/gorilla/sessions"
 	model "github.com/dustinnewman98/twitter_clone/model"
+	api "github.com/dustinnewman98/twitter_clone/api"
+	session "github.com/dustinnewman98/twitter_clone/session"
 )
 
 type LoginCreds struct {
@@ -22,35 +25,40 @@ type LoginPage struct {
 
 type IndexPage struct {
 	Tweets []model.Tweet
-	Username string
-	UserId int64
+	CurrentUsername string
+	CurrentUserId int64
 	Title string
 }
 
 type UserPage struct {
-	ThisUsername string
-	ThisUserId int64
-	Tweets []model.Tweet
-	CrossUsers model.CrossUsers
 	Username string
 	UserId int64
+	Tweets []model.Tweet
+	CrossUsers model.CrossUsers
+	Bio string
+	Website string
+	Location string
+	DisplayName string
+	CurrentUsername string
+	CurrentUserId int64
 	Title string
 }
 
 type TweetPage struct {
 	Tweet model.Tweet
 	Replies []model.Tweet
-	Username string
-	UserId int64
+	CurrentUsername string
+	CurrentUserId int64
 	Title string
 }
 
 type UserEditPage struct {
+	DisplayName string
 	Bio string
 	Website string
 	Location string
-	Username string
-	UserId int64
+	CurrentUsername string
+	CurrentUserId int64
 	Title string
 }
 
@@ -58,13 +66,20 @@ const (
 	LOGIN_COOKIE_NAME = "login"
 )
 
-var store = sessions.NewCookieStore([]byte("SECRET"))
 var templates = template.Must(template.ParseGlob("templates/*.html"))
+
+func stringToNullString(maybeString string) sql.NullString {
+	nullString := sql.NullString{String: "", Valid: false}
+	if maybeString != "" {
+		nullString = sql.NullString{String: maybeString, Valid: true}
+	}
+	return nullString
+}
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		// Check if user is authenticated
-		session, _ := store.Get(r, LOGIN_COOKIE_NAME)
+		session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
 		_, ok := session.Values["uid"]
 		if ok == true {
 			http.Redirect(w, r, "/", http.StatusMovedPermanently)
@@ -98,7 +113,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 		log.Println("User id: ", uid, "user.Id: ", user.Id)
 
-		session, err := store.Get(r, LOGIN_COOKIE_NAME)
+		session, err := session.Store.Get(r, LOGIN_COOKIE_NAME)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -123,7 +138,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, LOGIN_COOKIE_NAME)
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
 	session.Values["uid"] = 0
 	session.Values["username"] = ""
 	session.Options.MaxAge = -1
@@ -136,7 +151,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, LOGIN_COOKIE_NAME)
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
 
 	// Check if user is authenticated
 	uid, ok := session.Values["uid"]
@@ -155,8 +170,8 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := IndexPage{
 		Tweets: tweets,
-		Username: username.(string),
-		UserId: uid.(int64),
+		CurrentUsername: username.(string),
+		CurrentUserId: uid.(int64),
 		Title: "Home",
 	}
 	fmt.Println(data)
@@ -165,77 +180,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TweetHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		session, _ := store.Get(r, LOGIN_COOKIE_NAME)
-
-		// Check if user is authenticated
-		uid, ok := session.Values["uid"]
-		if ok == false {
-			http.Redirect(w, r, "/login", http.StatusMovedPermanently)
-			return
-		}
-		fmt.Println("Tweet: ", r.FormValue("tweet"))
-
-		tweet := model.TweetRequest{
-			UserId: uid.(int64),
-			Text: r.FormValue("tweet"),
-		}
-
-		_, err := model.CreateTweet(tweet)
-		if err != nil {
-			log.Println("Could not create tweet.\n", err)
-			return
-		}
-
-		http.Redirect(w, r, "/", http.StatusMovedPermanently)
-		return
-	} else {
-		session, _ := store.Get(r, LOGIN_COOKIE_NAME)
-
-		// Check if user is authenticated
-		uid, ok := session.Values["uid"]
-		if ok == false {
-			http.Redirect(w, r, "/login", http.StatusMovedPermanently)
-			return
-		}
-		username, _ := session.Values["username"]
-
-		// Render tweet.html with tweet replies
-		tweetId, err := strconv.ParseInt(mux.Vars(r)["tweet_id"], 10, 64)
-		if err != nil {
-			log.Println("Invalid tweet ID: ", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		tweet, err := model.GetTweet(tweetId, uid.(int64))
-		if err != nil {
-			log.Println("Could not get tweet.\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		title := fmt.Sprintf("%v on Gwitter: %q", tweet.Username, tweet.Text)
-		data := TweetPage{
-			Tweet: tweet,
-			Replies: nil,
-			Username: username.(string),
-			UserId: uid.(int64),
-			Title: title,
-		}
-		templates.ExecuteTemplate(w, "tweet.html", data)
-	}
-}
-
-func UserHandler(w http.ResponseWriter, r *http.Request) {
-	thisUsername := mux.Vars(r)["username"]
-	thisUid, err := model.GetUserIdFromUsername(thisUsername)
-	if err != nil {
-		log.Println("Could not get user ID.\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	session, _ := store.Get(r, LOGIN_COOKIE_NAME)
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
 
 	// Check if user is authenticated
 	uid, ok := session.Values["uid"]
@@ -245,139 +190,172 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	username, _ := session.Values["username"]
 
-	tweets, err := model.GetHistory(thisUid, uid.(int64))
+	// Render tweet.html with tweet replies
+	tweetId, err := strconv.ParseInt(mux.Vars(r)["tweet_id"], 10, 64)
+	if err != nil {
+		log.Println("Invalid tweet ID: ", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tweet, err := model.GetTweet(tweetId, uid.(int64))
+	if err != nil {
+		log.Println("Could not get tweet.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	title := fmt.Sprintf("%v on Gwitter: %q", tweet.Username, tweet.Text)
+	data := TweetPage{
+		Tweet: tweet,
+		Replies: nil,
+		CurrentUsername: username.(string),
+		CurrentUserId: uid.(int64),
+		Title: title,
+	}
+	templates.ExecuteTemplate(w, "tweet.html", data)
+}
+
+func UserHandler(w http.ResponseWriter, r *http.Request) {
+	username := mux.Vars(r)["username"]
+	user, err := model.GetUserFromUsername(username)
+	if err != nil {
+		log.Println("Could not get user ID.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
+
+	// Check if user is authenticated
+	currentUid, ok := session.Values["uid"]
+	if ok == false {
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+		return
+	}
+	currentUsername, _ := session.Values["username"]
+
+	tweets, err := model.GetHistory(user.Id, currentUid.(int64))
 	if err != nil {
 		log.Println("Could not get tweets.\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	crossUsers, err := model.GetUsersRelationship(thisUid, uid.(int64))
-		if err != nil {
+	crossUsers, err := model.GetUsersRelationship(user.Id, currentUid.(int64))
+	if err != nil {
 		log.Println("Could not get user relationship.\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	title := username
+	if user.DisplayName != "" {
+		title = fmt.Sprintf("%s (@%s)", user.DisplayName, username)
+	}
+
 	data := UserPage{
-		ThisUsername: thisUsername,
-		ThisUserId: thisUid,
+		Username: username,
+		UserId: user.Id,
 		Tweets: tweets,
 		CrossUsers: crossUsers,
-		Username: username.(string),
-		UserId: uid.(int64),
-		Title: thisUsername,
+		Bio: user.Bio,
+		DisplayName: user.DisplayName,
+		Location: user.Location,
+		Website: user.Website,
+		CurrentUsername: currentUsername.(string),
+		CurrentUserId: currentUid.(int64),
+		Title: title,
 	}
 
-	templates.ExecuteTemplate(w, "user.html", data)
+	templates.ExecuteTemplate(w, "user_tweets.html", data)
 }
 
-func FollowHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, LOGIN_COOKIE_NAME)
-
-	// Check if user is authenticated
-	follower, ok := session.Values["uid"]
-	if ok == false {
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-	username := r.FormValue("username")
-	followed, err := model.GetUserIdFromUsername(username)
+func UserLikesHandler(w http.ResponseWriter, r *http.Request) {
+	username := mux.Vars(r)["username"]
+	user, err := model.GetUserFromUsername(username)
 	if err != nil {
 		log.Println("Could not get user ID.\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("Follower: ", follower, "; Followed: ", followed)
-	_, err = model.CreateFollow(followed, follower.(int64))
-	if err != nil {
-		log.Println("Could not follow user.\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
-	http.Redirect(w, r, fmt.Sprintf("/%s", username), http.StatusMovedPermanently)
-	return
-}
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
 
-func RetweetHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		session, _ := store.Get(r, LOGIN_COOKIE_NAME)
-
-		// Check if user is authenticated
-		uid, ok := session.Values["uid"]
-		if ok == false {
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		tweetId, err := strconv.ParseInt(r.FormValue("tweet_id"), 10, 64)
-		if err != nil {
-			log.Println("Invalid tweet ID: ", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		fmt.Println("UID: ", uid, "; TweetId: ", tweetId)
-		_, err = model.CreateRetweet(uid.(int64), tweetId)
-		if err != nil {
-			log.Println("Could not retweet.\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/", http.StatusMovedPermanently)
-		return
-	}
-}
-
-func LikeHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		session, _ := store.Get(r, LOGIN_COOKIE_NAME)
-
-		// Check if user is authenticated
-		uid, ok := session.Values["uid"]
-		if ok == false {
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		tweetId, err := strconv.ParseInt(r.FormValue("tweet_id"), 10, 64)
-		if err != nil {
-			log.Println("Invalid tweet ID: ", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		fmt.Println("UID: ", uid, "; TweetId: ", tweetId)
-		_, err = model.CreateLike(uid.(int64), tweetId)
-		if err != nil {
-			log.Println("Could not like.\n", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-}
-
-func UserEditHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, LOGIN_COOKIE_NAME)
 	// Check if user is authenticated
-	uid, ok := session.Values["uid"]
+	currentUid, ok := session.Values["uid"]
 	if ok == false {
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 		return
 	}
-	username, _ := session.Values["username"]
+	currentUsername, _ := session.Values["username"]
+
+	tweets, err := model.GetLikes(user.Id, currentUid.(int64))
+	if err != nil {
+		log.Println("Could not get tweets.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	crossUsers, err := model.GetUsersRelationship(user.Id, currentUid.(int64))
+	if err != nil {
+		log.Println("Could not get user relationship.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	title := username
+	if user.DisplayName != "" {
+		title = fmt.Sprintf("%s (@%s)", user.DisplayName, username)
+	}
+
+	data := UserPage{
+		Username: username,
+		UserId: user.Id,
+		Tweets: tweets,
+		CrossUsers: crossUsers,
+		Bio: user.Bio,
+		DisplayName: user.DisplayName,
+		Location: user.Location,
+		Website: user.Website,
+		CurrentUsername: currentUsername.(string),
+		CurrentUserId: currentUid.(int64),
+		Title: title,
+	}
+
+	templates.ExecuteTemplate(w, "user_likes.html", data)
+}
+
+func UserEditHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
+	// Check if user is authenticated
+	username, ok := session.Values["username"]
+	if ok == false {
+		log.Println("Not valid username")
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+		return
+	}
+	fmt.Println(mux.Vars(r)["username"])
 
 	if mux.Vars(r)["username"] != username {
-		http.Redirect(w, r, fmt.Sprintf("/%s", mux.Vars(r)["username"]), http.StatusMovedPermanently)
+		fmt.Printf("%s not equal to %s\n", mux.Vars(r)["username"], username)
+		http.Redirect(w, r, fmt.Sprintf("/%s", username), http.StatusMovedPermanently)
+		return
+	}
+
+	user, err := model.GetUserFromUsername(username.(string))
+	if err != nil {
+		log.Println("Could not get user.\n", err)
+		http.Error(w, err.Error(), http.StatusMovedPermanently)
 		return
 	}
 
 	data := UserEditPage{
-		Bio: "This is my bio.",
-		Website: "https://dustinnewman.io",
-		Username: username.(string),
-		UserId: uid.(int64),
+		DisplayName: user.DisplayName,
+		Bio: user.Bio,
+		Location: user.Location,
+		Website: user.Website,
+		CurrentUsername: user.Username,
+		CurrentUserId: user.Id,
 		Title: "Edit your profile",
 	}
 
@@ -388,16 +366,20 @@ func main() {
 	model.InitDB()
 
 	r := mux.NewRouter()
+	s := r.PathPrefix("/api").Subrouter()
+	s.HandleFunc("/tweet", api.TweetHandler).Methods("POST")
+	s.HandleFunc("/follow", api.FollowHandler).Methods("POST")
+	s.HandleFunc("/retweet", api.RetweetHandler).Methods("POST")
+	s.HandleFunc("/like", api.LikeHandler).Methods("POST")
+	s.HandleFunc("/{username}/edit", api.UserEditHandler).Methods("POST")
+
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	r.HandleFunc("/login", LoginHandler)
 	r.HandleFunc("/logout", LogoutHandler)
-	r.HandleFunc("/tweet", TweetHandler)
-	r.HandleFunc("/tweet/{tweet_id}", TweetHandler)
-	r.HandleFunc("/follow", FollowHandler)
-	r.HandleFunc("/retweet", RetweetHandler)
-	r.HandleFunc("/like", LikeHandler)
-	r.HandleFunc("/{username}", UserHandler)
-	r.HandleFunc("/{username}/edit", UserEditHandler)
-	r.HandleFunc("/", IndexHandler)
+	r.HandleFunc("/tweet/{tweet_id}", TweetHandler).Methods("GET")
+	r.HandleFunc("/{username}", UserHandler).Methods("GET")
+	r.HandleFunc("/{username}/likes", UserLikesHandler).Methods("GET")
+	r.HandleFunc("/{username}/edit", UserEditHandler).Methods("GET")
+	r.HandleFunc("/", IndexHandler).Methods("GET")
 	log.Fatal(http.ListenAndServe(":8000", r))
 }

@@ -1,63 +1,55 @@
+{{define "user"}}
 {{template "home" .}}
-<div id="user_info_bar">
-    <h1>{{.ThisUsername}}</h1>
-    <div id="user_actions_bar">
-        {{if .CrossUsers.SecondFollowsFirst}}
-        <form action="/unfollow" method="post">
-            <input type="hidden" id="username" name="username" value="{{.ThisUsername}}">
-            <input class="primary_button" type="submit" value="Unfollow">
-        </form>
-        {{else}}
-        <form action="/follow" method="post">
-            <input type="hidden" id="username" name="username" value="{{.ThisUsername}}">
-            <input class="secondary_button" type="submit" value="Follow">
-        </form>
+<div id="user_header">
+    <div id="user_info_bar">
+        <div id="user_info_both_name">
+            {{if .DisplayName}}
+            <h2 class="primary_text">{{.DisplayName}}</h2>
+            {{else}}
+            <h2 class="primary_text">{{.Username}}</h2>
+            {{end}}
+            <p class="tweet_username secondary_text">@{{.Username}}</p>
+        </div>
+        <div id="user_actions_bar">
+            {{if eq $.Username $.CurrentUsername}}
+            <a class="secondary_button" href="/{{$.CurrentUsername}}/edit">Edit profile</a>
+            {{else}}
+            {{if .CrossUsers.SecondFollowsFirst}}
+            <form action="/api/unfollow" method="post">
+                <input type="hidden" id="username" name="username" value="{{.Username}}">
+                <input id="unfollow_button" class="primary_button destructive_button" type="submit" value="Unfollow">
+            </form>
+            {{else}}
+            <form action="/api/follow" method="post">
+                <input type="hidden" id="username" name="username" value="{{.Username}}">
+                <input class="secondary_button" type="submit" value="Follow">
+            </form>
+            {{end}}
+            {{end}}
+        </div>
+    </div>
+    {{if .Bio}}
+    <p id="bio">{{.Bio}}</p>
+    {{end}}
+    {{if or .Location .Website}}
+    <div id="user_info_items">
+        {{if .Location}}
+        <p class="user_info_location secondary_text">{{.Location}}</p>
+        {{end}}
+        {{if .Website}}
+        <a href="{{.Website}}" target="_blank" rel="noopener noreferrer" class="user_info_website">{{.Website}}</a>
         {{end}}
     </div>
-</div>
-<div>
-    <span id="followers">{{.CrossUsers.Followers}} <span class="secondary_text">Followers</span></span>
-    <span id="follows">{{.CrossUsers.Follows}} <span class="secondary_text">Following</span></span>
-</div>
-{{range .Tweets}}
-<div class="tweet">
-    {{if ne .Username $.ThisUsername}}
-    {{if ne $.ThisUsername $.Username}}
-    <p class="secondary_text">{{$.ThisUsername}} regweeted:</p>
-    {{else}}
-    <p class="secondary_text">You regweeted:</p>
     {{end}}
-    {{end}}
-    <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a><span class="tweet_date secondary_text"> *
-        {{.Date}}</span>
-    <p class="tweet_text">{{.Text}}</p>
-    <div class="tweet_actions_bar">
-        <a href="/tweet/{{.Id}}">
-            <img id="replies_button" alt="Replies" src="/static/replies.png" />
-        </a>
-        {{if .Liked}}
-        <form action="/unlike" method="post">
-            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="like_button" class="undo" type="image" src="/static/heart_filled.png" alt="Unlike">
-        </form>
-        {{else}}
-        <form action="/like" method="post">
-            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="like_button" type="image" src="/static/heart.png" alt="Like">
-        </form>
-        {{end}}
-        {{if .Retweeted}}
-        <form action="/unretweet" method="post">
-            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo regweet">
-        </form>
-        {{else}}
-        <form action="/retweet" method="post">
-            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Regweet">
-        </form>
-        {{end}}
+    <div id="user_follows_bar">
+        <span id="follows"><span class="primary_text">{{.CrossUsers.Follows}}</span> <span
+                class="secondary_text">Following</span></span>
+        <span id="followers"><span class="primary_text">{{.CrossUsers.Followers}}</span> <span
+                class="secondary_text">Followers</span></span>
+    </div>
+    <div id="user_tweets_or_likes">
+        <a href="/{{.Username}}">Tweets</a>
+        <a href="/{{.Username}}/likes">Likes</a>
     </div>
 </div>
 {{end}}
-{{template "home_footer" .}}

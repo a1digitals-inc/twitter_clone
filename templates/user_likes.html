@@ -1,18 +1,7 @@
-{{template "home" .}}
-<div id="main_header">
-    <h3>Home</h3>
-</div>
-<form id="tweet_form" action="/api/tweet" method="post">
-    <textarea maxlength="140" id="tweet" name="tweet" placeholder="What's happening?"></textarea>
-    <div id="tweet_form_actions_bar">
-        <div id="tweet_form_char_count">
-            <noscript>140</noscript>
-        </div>
-        <input class="primary_button" id="submit_tweet" type="submit" value="Gweet">
-    </div>
-</form>
+{{template "user" .}}
+
 {{range .Tweets}}
-<article class="tweet">
+<div class="tweet">
     <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a><span class="tweet_date secondary_text"> ·
         {{.Date}}</span>
     <p class="tweet_text">{{.Text}}</p>
@@ -43,6 +32,7 @@
         </form>
         {{end}}
     </div>
-</article>
+</div>
 {{end}}
+
 {{template "home_footer" .}}

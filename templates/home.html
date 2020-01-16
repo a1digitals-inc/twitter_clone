@@ -7,12 +7,12 @@
             <img src="/static/bird.png" alt="Bird illustration." />
         </a>
         <nav>
-            <a href=""><img src="/static/bird.png" alt="Bird illustration." /> Home</a>
-            <a href="#0"><img src="/static/bird.png" alt="Bird illustration." /> Notifications</a>
-            <a href="#0"><img src="/static/bird.png" alt="Bird illustration." /> Messages</a>
-            <a href="/{{.Username}}"><img src="/static/bird.png" alt="Bird illustration." /> Profile</a>
+            <a href="/"><img id="home_icon" src="/static/ui_spritesheet.png" alt="Home icon." /> Home</a>
+            <a href="#0"><img id="notif_icon" src="/static/ui_spritesheet.png" alt="Bell icon." /> Notifications</a>
+            <a href="#0"><img id="messages_icon" src="/static/ui_spritesheet.png" alt="Envelope icon." /> Messages</a>
+            <a href="/{{.CurrentUsername}}"><img src="/static/bird.png" alt="Bird illustration." /> Profile</a>
             <form action="/logout" method="post">
-                <input class="secondary_button" type="submit" value="Logout">
+                <input class="secondary_button destructive_button" type="submit" value="Logout">
             </form>
         </nav>
     </div>

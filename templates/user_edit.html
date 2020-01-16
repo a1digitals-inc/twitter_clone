@@ -1,6 +1,38 @@
 {{template "home" .}}
-<h1>{{.Username}}</h1>
-<form action="/follow" method="post">
-    <input type="hidden" id="username" name="username" value="{{.Username}}">
-</form>
+<div id="user_edit_container">
+    <h1>{{.CurrentUsername}}</h1>
+
+    <form id="user_edit_form" action="/api/{{.CurrentUsername}}/edit" method="post">
+        <div id="edit_display_name">
+            <label for="display_name">Display Name</label>
+            <input maxlength="50" id="display_name" name="display_name" type="text" value="{{.DisplayName}}" />
+            <noscript>
+                <p class="secondary_text char_limit">Max: 50 characters</p>
+            </noscript>
+        </div>
+        <div id="edit_bio">
+            <label for="bio">Bio</label>
+            <textarea maxlength="160" id="bio" name="bio">{{.Bio}}</textarea>
+            <noscript>
+                <p class="secondary_text char_limit">Max: 160 Characters</p>
+            </noscript>
+        </div>
+        <div id="edit_location">
+            <label for="location">Location</label>
+            <input maxlength="30" id="location" name="location" type="text" value="{{.Location}}" />
+            <noscript>
+                <p class="secondary_text char_limit">Max: 30 Characters</p>
+            </noscript>
+        </div>
+        <div id="edit_website">
+            <label for="website">Website</label>
+            <input maxlength="100" id="website" name="website" type="text" value="{{.Website}}" />
+            <noscript>
+                <p class="secondary_text char_limit">Max: 100 Characters</p>
+            </noscript>
+        </div>
+        <input class="primary_button" type="submit" value="Save">
+    </form>
+</div>
+
 {{template "home_footer" .}}
