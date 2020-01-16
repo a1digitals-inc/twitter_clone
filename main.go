@@ -204,10 +204,15 @@ func TweetHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	replies, err := model.GetReplies(tweetId, uid.(int64))
+	if err != nil {
+		log.Println("Could not get replies.")
+	}
+
 	title := fmt.Sprintf("%v on Gwitter: %q", tweet.Username, tweet.Text)
 	data := TweetPage{
 		Tweet: tweet,
-		Replies: nil,
+		Replies: replies,
 		CurrentUsername: username.(string),
 		CurrentUserId: uid.(int64),
 		Title: title,

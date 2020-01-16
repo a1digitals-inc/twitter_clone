@@ -11,6 +11,7 @@ type TweetRequest struct {
 	UserId int64
 	Text string
 	ImageURL string
+	ParentId int64
 }
 
 type Tweet struct {
@@ -79,6 +80,7 @@ func InitDB() {
 		text VARCHAR (140) NOT NULL,
 		image_url TEXT,
 		user_id integer REFERENCES users (id),
+		parent_id integer REFERENCES tweets,
 		created_at timestamptz NOT NULL DEFAULT now()
 		)`)
 	if err != nil {
@@ -204,7 +206,9 @@ func EditUser(edits User) error {
 
 func CreateTweet(request TweetRequest) (int64, error) {
 	var id int64
-	err := db.QueryRow(`INSERT INTO tweets (text, user_id, image_url) VALUES ($1, $2, $3) RETURNING id`, request.Text, request.UserId, request.ImageURL).Scan(&id)
+	err := db.QueryRow(`INSERT INTO tweets (text, user_id, image_url, parent_id) 
+		VALUES ($1, $2, $3, $4) RETURNING id`, 
+		request.Text, request.UserId, request.ImageURL, request.ParentId).Scan(&id)
 	if err != nil {
 		log.Println("Query Error: ", err)
 		return 0, err
@@ -243,6 +247,51 @@ func GetTweet(tweetId, userId int64) (Tweet, error) {
 		DisplayName: nullStringToString(displayName),
 	}
 	return tweet, nil
+}
+
+func GetReplies(tweetId, userId int64) ([]Tweet, error) {
+	result, err := db.Query(`SELECT t.id, t.text, t.image_url, 
+		t.created_at, u.username, u.display_name,
+		(l.user_id IS NOT NULL) as user_liked,
+		(r.user_id IS NOT NULL) as user_retweeted
+		FROM tweets t
+		INNER JOIN users u
+		ON u.id = t.user_id
+		LEFT JOIN likes l
+		ON l.user_id = $2 AND l.tweet_id = t.id
+		LEFT JOIN retweets r
+		ON r.user_id = $2 AND r.tweet_id = t.id
+		WHERE t.parent_id = $1`, tweetId, userId)
+	if err != nil {
+		log.Println("Query Error: ", err)
+		return nil, err
+	}
+	defer result.Close()
+	
+	var replies []Tweet
+	for result.Next() {
+		var id int64
+		var text, imageURL, createdAt, username string
+		var displayName sql.NullString
+		var liked, retweeted bool
+		err := result.Scan(&id, &text, &imageURL, &createdAt, &username, &displayName, &liked, &retweeted)
+		if err != nil {
+			log.Println("Scanning error: ", err)
+			break
+		}
+		reply := Tweet{
+			Id: id,
+			Text: text,
+			ImageURL: imageURL,
+			Username: username,
+			DisplayName: nullStringToString(displayName),
+			Date: createdAt,
+			Liked: liked,
+			Retweeted: retweeted,
+		}
+		replies = append(replies, reply)
+	}
+	return replies, nil
 }
 
 func CreateFollow(followed, follower int64) (bool, error) {

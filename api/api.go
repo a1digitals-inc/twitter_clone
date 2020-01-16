@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"context"
+	"mime/multipart"
 	mux "github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	model "github.com/dustinnewman98/twitter_clone/model"
@@ -35,13 +36,8 @@ func Init() error {
 	return nil
 }
 
-func uploadImage(r *http.Request) (string, error) {
+func uploadImage(f multipart.File, fh *multipart.FileHeader) (string, error) {
 	ctx := context.Background()
-	f, fh, err := r.FormFile("image")
-
-	if err != nil {
-		return "", err
-	}
 
 	if _, err := bucket.Attrs(ctx); err != nil {
 		fmt.Println("Failed at attrs")
@@ -87,9 +83,9 @@ func TweetHandler(w http.ResponseWriter, r *http.Request) {
 		Text: r.FormValue("tweet"),
 	}
 
-	if r.MultipartForm.File != nil {
-		fmt.Println("image detected ")
-		image, err := uploadImage(r)
+	f, fh, err := r.FormFile("image")
+	if err == nil {
+		image, err := uploadImage(f, fh)
 		if err != nil {
 			log.Println("Could not upload image.", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -98,7 +94,11 @@ func TweetHandler(w http.ResponseWriter, r *http.Request) {
 		tweet.ImageURL = image
 	}
 
-	_, err := model.CreateTweet(tweet)
+	if r.FormValue("parent") != "" {
+		tweet.ParentId, _ = strconv.ParseInt(r.FormValue("parent"), 10, 64)
+	}
+
+	_, err = model.CreateTweet(tweet)
 	if err != nil {
 		log.Println("Could not create tweet.\n", err)
 		return

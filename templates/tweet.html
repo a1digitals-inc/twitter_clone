@@ -44,4 +44,58 @@
     {{end}}
 </article>
 
+<form id="tweet_form" action="/api/tweet" enctype="multipart/form-data" method="post">
+    <input type="hidden" id="parent" name="parent" value="{{.Tweet.Id}}" />
+    <textarea maxlength="140" id="tweet" name="tweet" placeholder="Tweet your reply"></textarea>
+    <div id="tweet_form_actions_bar">
+        <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/gif,video/mp4" />
+        <div>
+            <div id="tweet_form_char_count">
+                <noscript>140</noscript>
+            </div>
+            <input class="primary_button" id="submit_tweet" type="submit" value="Gweet">
+        </div>
+    </div>
+</form>
+
+{{range .Replies}}
+<article class="tweet">
+    {{if .DisplayName}}
+    <a href="/{{.Username}}" class="tweet_username primary_text">{{.DisplayName}}</a>
+    {{else}}
+    <a href="/{{.Username}}" class="tweet_username primary_text">{{.Username}}</a>
+    {{end}}
+    <span class="tweet_username secondary_text">@{{.Username}}</span>
+    <span class="tweet_date secondary_text"> ·
+        {{.Date}}</span>
+    <p class="tweet_text">{{.Text}}</p>
+    <div class="tweet_actions_bar">
+        <a href="/tweet/{{.Id}}">
+            <img id="replies_button" alt="Replies" src="/static/replies.png" />
+        </a>
+        {{if .Retweeted}}
+        <form action="/api/unretweet" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo regweet">
+        </form>
+        {{else}}
+        <form action="/api/retweet" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Regweet">
+        </form>
+        {{end}}
+        {{if .Liked}}
+        <form action="/api/unlike" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input id="like_button" class="undo" type="image" src="/static/heart_filled.png" alt="Unlike">
+        </form>
+        {{else}}
+        <form action="/api/like" method="post">
+            <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
+            <input id="like_button" type="image" src="/static/heart.png" alt="Like">
+        </form>
+        {{end}}
+    </div>
+</article>
+{{end}}
 {{template "home_footer" .}}
