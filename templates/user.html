@@ -14,6 +14,7 @@
             {{if eq $.Username $.CurrentUsername}}
             <a class="secondary_button" href="/{{$.CurrentUsername}}/edit">Edit profile</a>
             {{else}}
+            <a class="secondary_button" href="/messages/{{$.CurrentUserId}}-{{$.UserId}}">DM</a>
             {{if .CrossUsers.SecondFollowsFirst}}
             <form action="/api/unfollow" method="post">
                 <input type="hidden" id="username" name="username" value="{{.Username}}">

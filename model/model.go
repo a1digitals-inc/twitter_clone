@@ -42,6 +42,30 @@ type CrossUsers struct {
 	SecondFollowsFirst bool
 }
 
+type Message struct {
+	Id int64
+	SenderId int64
+	SenderUsername string
+	SenderDisplayName string
+	Text string
+	CreatedAt string
+}
+
+type MessageRequest struct {
+	SenderId int64
+	Text string
+	ConversationId int64
+}
+
+type Conversation struct {
+	Id int64
+	Name string
+	Text string
+	OtherUserDisplayName string
+	OtherUserName string
+	MostRecentDate string
+}
+
 var db *sql.DB
 
 func nullStringToString(nullString sql.NullString) string {
@@ -50,6 +74,14 @@ func nullStringToString(nullString sql.NullString) string {
 		maybeString = nullString.String
 	}
 	return maybeString
+}
+
+func nullInt64ToInt64(nullInt sql.NullInt64) int64 {
+	var maybeInt int64
+	if nullInt.Valid {
+		maybeInt = nullInt.Int64
+	}
+	return maybeInt
 }
 
 func InitDB() {
@@ -113,6 +145,35 @@ func InitDB() {
 		)`)
 	if err != nil {
 		log.Println("Could not create likes table.\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS conversations(
+		id serial PRIMARY KEY,
+		name VARCHAR(30),
+		created_at timestamptz NOT NULL DEFAULT now()
+		)`)
+	if err != nil {
+		log.Println("Could not create conversations table.\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS conversations_users(
+		conversation_id integer REFERENCES conversations ON DELETE CASCADE,
+		user_id integer REFERENCES users ON DELETE CASCADE,
+		created_at timestamptz NOT NULL DEFAULT now()
+		)`)
+	if err != nil {
+		log.Println("Could not create conversations_users table.\n", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS messages(
+		id serial PRIMARY KEY,
+		text TEXT,
+		conversation_id integer REFERENCES conversations ON DELETE CASCADE,
+		sender_id integer REFERENCES users ON DELETE CASCADE,
+		created_at timestamptz NOT NULL DEFAULT now()
+		)`)
+	if err != nil {
+		log.Println("Could not create messages table.\n", err)
 	}
 }
 
@@ -181,6 +242,66 @@ func GetUsersRelationship(userId, currentUserId int64) (CrossUsers, error) {
 		SecondFollowsFirst: secondFollowsFirst,
 	}
 	return crossUsers, nil
+}
+
+func GetTwoUsersConversation(userId, currentUserId int64) (int64, error) {
+	var id sql.NullInt64
+	err := db.QueryRow(`SELECT cu.conversation_id
+		FROM conversations_users cu
+		INNER JOIN conversations_users cus
+		ON cus.conversation_id = cu.conversation_id AND cus.user_id = $2
+		WHERE cu.user_id = $1 AND NOT EXISTS (
+		SELECT conversation_id
+		FROM conversations_users
+		WHERE conversation_id = cus.conversation_id AND user_id != $1 AND user_id != $2
+		)`, userId, currentUserId).Scan(&id)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("Query Error: ", err)
+		return 0, err
+	}
+	return nullInt64ToInt64(id), nil
+}
+
+func CreateTwoUsersConversation(userId, currentUserId int64) (int64, error) {
+	var conversationId int64
+	err := db.QueryRow(`INSERT INTO conversations DEFAULT VALUES RETURNING id`).Scan(&conversationId)
+	if err != nil {
+		log.Println("Query Error: ", err)
+		return 0, err
+	}
+
+	_, err = db.Exec(`INSERT INTO 
+		conversations_users(conversation_id, user_id) VALUES($1, $2)`,
+		conversationId, userId)
+	if err != nil {
+		log.Println("Query Error: ", err)
+		return 0, err
+	}
+
+	_, err = db.Exec(`INSERT INTO 
+		conversations_users(conversation_id, user_id) VALUES($1, $2)`,
+		conversationId, currentUserId)
+	if err != nil {
+		log.Println("Query Error: ", err)
+		return 0, err
+	}
+	return conversationId, nil
+}
+
+func SmartCreateUser(request MessageRequest) (int64, error) {
+	var id int64
+	err := db.QueryRow(`INSERT INTO messages(sender_id, text, conversation_id)
+		SELECT $1, $2, $3
+		WHERE EXISTS (
+			SELECT c.conversation_id
+			FROM conversations_users c
+			WHERE c.user_id = $1 AND c.conversation_id = $3
+		) RETURNING id`, request.SenderId, request.Text, request.ConversationId).Scan(&id)
+	if err != nil {
+		log.Println("Query Error: ", err)
+		return 0, err
+	}
+	return id, nil
 }
 
 func EditUser(edits User) error {
@@ -292,6 +413,88 @@ func GetReplies(tweetId, userId int64) ([]Tweet, error) {
 		replies = append(replies, reply)
 	}
 	return replies, nil
+}
+
+func GetConversation(conversationId int64) ([]Message, error) {
+	result, err := db.Query(`SELECT m.id, m.text, m.created_at,
+		u.id, u.username, u.display_name
+		FROM messages m
+		LEFT JOIN users u
+		ON u.id = m.sender_id
+		WHERE m.conversation_id = $1
+		ORDER BY m.created_at ASC`, conversationId)
+	if err != nil {
+		log.Println("Query error: ", err)
+		return nil, err
+	}
+	defer result.Close()
+
+	var messages []Message
+	for result.Next() {
+		var id, senderId int64
+		var text, senderUsername, createdAt string
+		var senderDisplayName sql.NullString
+		err = result.Scan(&id, &text, &createdAt, &senderId, &senderUsername, &senderDisplayName)
+		if err != nil {
+			log.Println("Scanning Error: ", err)
+			break
+		}
+		message := Message{
+			Id: id,
+			Text: text,
+			CreatedAt: createdAt,
+			SenderId: senderId,
+			SenderUsername: senderUsername,
+			SenderDisplayName: nullStringToString(senderDisplayName),
+		}
+		messages = append(messages, message)
+	}
+	return messages, nil
+}
+
+func GetConversations(userId int64) ([]Conversation, error) {
+	result, err := db.Query(`SELECT DISTINCT ON (m.conversation_id)
+		m.conversation_id, m.text, m.created_at,
+		c.name, u.username, u.display_name
+		FROM messages m
+		LEFT JOIN conversations c
+		ON c.id = m.conversation_id
+		LEFT JOIN users u
+		ON u.id = m.sender_id
+		WHERE m.conversation_id IN (
+			SELECT c.id
+			FROM conversations_users cu
+			INNER JOIN conversations c
+			ON c.id = cu.conversation_id
+			WHERE cu.user_id = $1
+		)
+		ORDER BY m.conversation_id, m.created_at DESC`, userId)
+	if err != nil {
+		log.Println("Query Error: ", err)
+		return nil, err
+	}
+	defer result.Close()
+	
+	var conversations []Conversation
+	for result.Next() {
+		var id int64
+		var text, createdAt, otherUsername string
+		var name, otherUserDisplayName sql.NullString
+		err := result.Scan(&id, &text, &createdAt, &name, &otherUsername, &otherUserDisplayName)
+		if err != nil {
+			log.Println("Scanning error: ", err)
+			break
+		}
+		conversation := Conversation{
+			Id: id,
+			Text: text,
+			OtherUserName: otherUsername,
+			OtherUserDisplayName: nullStringToString(otherUserDisplayName),
+			MostRecentDate: createdAt,
+		}
+		conversations = append(conversations, conversation)
+	}
+	return conversations, nil
 }
 
 func CreateFollow(followed, follower int64) (bool, error) {

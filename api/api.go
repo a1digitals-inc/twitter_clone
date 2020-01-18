@@ -231,3 +231,40 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/%s", username), http.StatusMovedPermanently)
 	return
 }
+
+func MessageHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
+	// Check if user is authenticated
+	uid, ok := session.Values["uid"]
+	if ok == false {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	conversationIdString := mux.Vars(r)["conversation_id"]
+	if conversationIdString == "" {
+		http.Redirect(w, r, "/messages", http.StatusMovedPermanently)
+		return
+	} 
+
+	conversationId, err := strconv.ParseInt(conversationIdString, 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	text := r.FormValue("message")
+	request := model.MessageRequest{
+		SenderId: uid.(int64),
+		Text: text,
+		ConversationId: conversationId,
+	}
+
+	_, err = model.SmartCreateUser(request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/messages/%s", conversationIdString), http.StatusMovedPermanently)
+	return
+}

@@ -62,6 +62,21 @@ type UserEditPage struct {
 	Title string
 }
 
+type MessagesPage struct {
+	Conversations []model.Conversation
+	CurrentUsername string
+	CurrentUserId int64
+	Title string
+}
+
+type MessagePage struct {
+	Messages []model.Message
+	ConversationId int64
+	CurrentUsername string
+	CurrentUserId int64
+	Title string
+}
+
 const (
 	LOGIN_COOKIE_NAME = "login"
 )
@@ -232,21 +247,21 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
 
 	// Check if user is authenticated
-	currentUid, ok := session.Values["uid"]
+	currentUid, ok := session.Values["uid"].(int64)
 	if ok == false {
 		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
 		return
 	}
-	currentUsername, _ := session.Values["username"]
+	currentUsername, _ := session.Values["username"].(string)
 
-	tweets, err := model.GetHistory(user.Id, currentUid.(int64))
+	tweets, err := model.GetHistory(user.Id, currentUid)
 	if err != nil {
 		log.Println("Could not get tweets.\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	crossUsers, err := model.GetUsersRelationship(user.Id, currentUid.(int64))
+	crossUsers, err := model.GetUsersRelationship(user.Id, currentUid)
 	if err != nil {
 		log.Println("Could not get user relationship.\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -267,8 +282,8 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 		DisplayName: user.DisplayName,
 		Location: user.Location,
 		Website: user.Website,
-		CurrentUsername: currentUsername.(string),
-		CurrentUserId: currentUid.(int64),
+		CurrentUsername: currentUsername,
+		CurrentUserId: currentUid,
 		Title: title,
 	}
 
@@ -367,6 +382,127 @@ func UserEditHandler(w http.ResponseWriter, r *http.Request) {
 	templates.ExecuteTemplate(w, "user_edit.html", data)
 }
 
+func MessagesHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
+
+	// Check if user is authenticated
+	uid, ok := session.Values["uid"]
+	if ok == false {
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+		return
+	}
+	username, _ := session.Values["username"]
+	
+	conversations, err := model.GetConversations(uid.(int64))
+	if err != nil {
+		log.Println("Could not get conversations.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := MessagesPage{
+		Conversations: conversations,
+		CurrentUserId: uid.(int64),
+		CurrentUsername: username.(string),
+		Title: "Messages",
+	}
+
+	templates.ExecuteTemplate(w, "messages.html", data)
+	return
+}
+
+func DMHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
+
+	// Check if user is authenticated
+	currentUid, ok := session.Values["uid"].(int64)
+	if ok == false {
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+		return
+	}
+	currentUsername, _ := session.Values["username"].(string)
+
+	otherUsername := mux.Vars(r)["user_b"]
+	if otherUsername == currentUsername {
+		otherUsername = mux.Vars(r)["user_a"]
+	}
+
+	if otherUsername == "" {
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+		return
+	}
+
+	otherUserId, err := strconv.ParseInt(otherUsername, 10, 64)
+	if err != nil {
+		log.Println("Invalid user ID ", otherUsername)
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+		return
+	}
+
+	conversationId, err := model.GetTwoUsersConversation(otherUserId, currentUid)
+	if err != nil {
+		log.Println("Could not get conversation.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if conversationId == 0 {
+		conversationId, err = model.CreateTwoUsersConversation(otherUserId, currentUid)
+		if err != nil {
+			log.Println("Could not create conversation.\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	conversationURL := fmt.Sprintf("/messages/%d", conversationId)
+	http.Redirect(w, r, conversationURL, http.StatusMovedPermanently)
+	return
+}
+
+func ConversationHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
+
+	// Check if user is authenticated
+	currentUid, ok := session.Values["uid"].(int64)
+	if ok == false {
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+		return
+	}
+	currentUsername, _ := session.Values["username"].(string)
+
+	conversationVariable := mux.Vars(r)["conversation_id"]
+	if conversationVariable == "" {
+		http.Redirect(w, r, "/messages", http.StatusMovedPermanently)
+		return
+	}
+
+	conversationId, err := strconv.ParseInt(conversationVariable, 10, 64)
+	if err != nil {
+		log.Println("Invalid conversation ID.")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	messages, err := model.GetConversation(conversationId)
+	if err != nil {
+		log.Println("Could not get conversation.\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := MessagePage{
+		Messages: messages,
+		ConversationId: conversationId,
+		CurrentUserId: currentUid,
+		CurrentUsername: currentUsername,
+		Title: "Conversation",
+	}
+
+	templates.ExecuteTemplate(w, "message.html", data)
+	return
+}
+
 func main() {
 	model.InitDB()
 	api.Init()
@@ -377,12 +513,16 @@ func main() {
 	s.HandleFunc("/follow", api.FollowHandler).Methods("POST")
 	s.HandleFunc("/retweet", api.RetweetHandler).Methods("POST")
 	s.HandleFunc("/like", api.LikeHandler).Methods("POST")
+	s.HandleFunc("/messages/{conversation_id}", api.MessageHandler).Methods("POST")
 	s.HandleFunc("/{username}/edit", api.UserEditHandler).Methods("POST")
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	r.HandleFunc("/login", LoginHandler)
 	r.HandleFunc("/logout", LogoutHandler)
 	r.HandleFunc("/tweet/{tweet_id}", TweetHandler).Methods("GET")
+	r.HandleFunc("/messages", MessagesHandler).Methods("GET")
+	r.HandleFunc("/messages/{user_a}-{user_b}", DMHandler).Methods("GET")
+	r.HandleFunc("/messages/{conversation_id}", ConversationHandler).Methods("GET")
 	r.HandleFunc("/{username}", UserHandler).Methods("GET")
 	r.HandleFunc("/{username}/likes", UserLikesHandler).Methods("GET")
 	r.HandleFunc("/{username}/edit", UserEditHandler).Methods("GET")

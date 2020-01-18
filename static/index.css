@@ -346,6 +346,11 @@ a.secondary_button {
     margin-left: 20px;
 }
 
+#user_info_bar #user_actions_bar {
+    display: flex;
+    flex-direction: row;
+}
+
 #user_tweets_or_likes {
     display: flex;
     flex-direction: row;
@@ -460,6 +465,35 @@ a.secondary_button {
 
 #user_edit_form input[type="submit"] {
     align-self: flex-end;
+}
+
+#message_form {
+    display: flex;
+    position: fixed;
+    bottom: 0px;
+    width: 100%;
+    max-width: 600px;
+    justify-content: space-between;
+}
+
+#message_form #message {
+    width: 100%;
+    resize: none;
+    font-size: 15px;
+    background-color: var(--white);
+    color: var(--black);
+    border: none;
+}
+
+.message.own_message {
+    background-color: var(--primary);
+    color: white;
+    border-top-left-radius: 1.25rem;
+    border-bottom-left-radius: 1.25rem;
+}
+
+.message.own_message:first-child {
+    border-top-right-radius: 1.25rem;
 }
 
 @media only screen and (max-width: 1024px) {

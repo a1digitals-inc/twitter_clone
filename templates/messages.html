@@ -1,0 +1,20 @@
+{{template "home" .}}
+<div id="main_header">
+    <h3>Messages</h3>
+</div>
+{{range .Conversations}}
+<article class="conversation">
+    {{if .Name}}
+    <a href="/messages/{{.Id}}" class="conversation_username primary_text">{{.Name}}
+        {{else}}
+        {{if .OtherDisplayName}}
+        <a href="/messages/{{.Id}}" class="conversation_username primary_text">{{.OtherDisplayName}}
+            {{else}}
+            <a href="/messages/{{.Id}}" class="conversation_username primary_text">{{.OtherUsername}}
+                {{end}}
+                {{end}}
+                <p>{{.Text}}</p>
+            </a>
+</article>
+{{end}}
+{{template "home_footer" .}}
