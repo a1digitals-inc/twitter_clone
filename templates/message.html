@@ -1,14 +1,18 @@
 {{template "home" .}}
 
 <div id="main_header">
-    <h3>Conversation</h3>
+    <h3>{{.Title}}</h3>
 </div>
-{{range .Messages}}
-<article class="message {{if ne $.CurrentUserId .SenderId}} other_message {{else}} own_message {{end}}">
-    <p class="message_text">{{.Text}}</p>
-    <p class="message_date">{{.CreatedAt}}</p>
-</article>
-{{end}}
+<div id="messages">
+    {{range .Messages}}
+    <article class="message {{if ne $.CurrentUserId .SenderId}} other_message {{else}} own_message {{end}}">
+        <main class="message_content">
+            <p class="message_text">{{.Text}}</p>
+        </main>
+        <p class="message_date secondary_text">{{.CreatedAt}}</p>
+    </article>
+    {{end}}
+</div>
 
 <form id="message_form" action="/api/messages/{{.ConversationId}}" method="post">
     <textarea maxlength="140" id="message" name="message" placeholder="Start a new message"></textarea>

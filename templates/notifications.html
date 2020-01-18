@@ -1,0 +1,36 @@
+{{template "home" .}}
+
+<div id="main_header">
+    <h3>Notifications</h3>
+</div>
+{{range .Notifications}}
+<article class="notification">
+    {{if .Retweeted}}
+    <img class="notif_icon" alt="Retweeted Icon" src="/static/retweet_filled.png" />
+    {{else}}
+    <img class="notif_icon" alt="Liked Icon" src="/static/heart_filled.png" />
+    {{end}}
+    <div class="notif_content">
+        <a class="notif_username primary_text" href="/{{.Username}}">
+            {{if .DisplayName}}
+            {{.DisplayName}}
+            {{else}}
+            {{.Username}}
+            {{end}}
+        </a>
+        {{if and .Retweeted .Liked}}
+        liked and retweeted
+        {{else}}
+        {{if .Retweeted}}
+        retweeted
+        {{else}}
+        liked
+        {{end}}
+        {{end}}
+        your Tweet
+        <p class="notif_text secondary_text">{{.Text}}</p>
+    </div>
+</article>
+{{end}}
+
+{{template "home_footer" .}}

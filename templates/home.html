@@ -8,7 +8,8 @@
         </a>
         <nav>
             <a href="/"><img id="home_icon" src="/static/ui_spritesheet.png" alt="Home icon." /> Home</a>
-            <a href="#0"><img id="notif_icon" src="/static/ui_spritesheet.png" alt="Bell icon." /> Notifications</a>
+            <a href="/notifications"><img id="notif_icon" src="/static/ui_spritesheet.png" alt="Bell icon." />
+                Notifications</a>
             <a href="/messages"><img id="messages_icon" src="/static/ui_spritesheet.png" alt="Envelope icon." />
                 Messages</a>
             <a href="/{{.CurrentUsername}}"><img src="/static/bird.png" alt="Bird illustration." /> Profile</a>
@@ -17,5 +18,5 @@
             </form>
         </nav>
     </div>
-    <main>
+    <main id="main">
         {{end}}

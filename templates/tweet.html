@@ -19,12 +19,12 @@
         {{if .Retweeted}}
         <form action="/api/unretweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo regweet">
+            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo retweet">
         </form>
         {{else}}
         <form action="/api/retweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Regweet">
+            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Retweet">
         </form>
         {{end}}
         {{if .Liked}}
@@ -53,7 +53,7 @@
             <div id="tweet_form_char_count">
                 <noscript>140</noscript>
             </div>
-            <input class="primary_button" id="submit_tweet" type="submit" value="Gweet">
+            <input class="primary_button" id="submit_tweet" type="submit" value="Tweet">
         </div>
     </div>
 </form>
@@ -76,12 +76,12 @@
         {{if .Retweeted}}
         <form action="/api/unretweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo regweet">
+            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo retweet">
         </form>
         {{else}}
         <form action="/api/retweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Regweet">
+            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Retweet">
         </form>
         {{end}}
         {{if .Liked}}

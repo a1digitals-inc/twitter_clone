@@ -2,55 +2,53 @@
 {{template "home" .}}
 <div id="user_header">
     <div id="user_info_bar">
-        <div id="user_info_both_name">
-            {{if .DisplayName}}
-            <h2 class="primary_text">{{.DisplayName}}</h2>
-            {{else}}
-            <h2 class="primary_text">{{.Username}}</h2>
-            {{end}}
-            <p class="tweet_username secondary_text">@{{.Username}}</p>
+        <div id="user_header_bar">
+            <div id="user_info_both_name">
+                {{if .DisplayName}}
+                <h2 class="primary_text">{{.DisplayName}}</h2>
+                {{else}}
+                <h2 class="primary_text">{{.Username}}</h2>
+                {{end}}
+                <p class="tweet_username secondary_text">@{{.Username}}</p>
+            </div>
+            <div id="user_actions_bar">
+                {{if eq $.Username $.CurrentUsername}}
+                <a class="secondary_button" href="/{{$.CurrentUsername}}/edit">Edit profile</a>
+                {{else}}
+                <a class="secondary_button" href="/messages/{{$.CurrentUserId}}-{{$.UserId}}">DM</a>
+                {{if .CrossUsers.SecondFollowsFirst}}
+                <form action="/api/unfollow" method="post">
+                    <input type="hidden" id="username" name="username" value="{{.Username}}">
+                    <input id="unfollow_button" class="primary_button destructive_button" type="submit"
+                        value="Unfollow">
+                </form>
+                {{else}}
+                <form action="/api/follow" method="post">
+                    <input type="hidden" id="username" name="username" value="{{.Username}}">
+                    <input class="secondary_button" type="submit" value="Follow">
+                </form>
+                {{end}}
+                {{end}}
+            </div>
         </div>
-        <div id="user_actions_bar">
-            {{if eq $.Username $.CurrentUsername}}
-            <a class="secondary_button" href="/{{$.CurrentUsername}}/edit">Edit profile</a>
-            {{else}}
-            <a class="secondary_button" href="/messages/{{$.CurrentUserId}}-{{$.UserId}}">DM</a>
-            {{if .CrossUsers.SecondFollowsFirst}}
-            <form action="/api/unfollow" method="post">
-                <input type="hidden" id="username" name="username" value="{{.Username}}">
-                <input id="unfollow_button" class="primary_button destructive_button" type="submit" value="Unfollow">
-            </form>
-            {{else}}
-            <form action="/api/follow" method="post">
-                <input type="hidden" id="username" name="username" value="{{.Username}}">
-                <input class="secondary_button" type="submit" value="Follow">
-            </form>
+        {{if .Bio}}
+        <p id="bio">{{.Bio}}</p>
+        {{end}}
+        {{if or .Location .Website}}
+        <div id="user_info_items">
+            {{if .Location}}
+            <p class="user_info_location secondary_text">{{.Location}}</p>
             {{end}}
+            {{if .Website}}
+            <a href="{{.Website}}" target="_blank" rel="noopener noreferrer" class="user_info_website">{{.Website}}</a>
             {{end}}
         </div>
-    </div>
-    {{if .Bio}}
-    <p id="bio">{{.Bio}}</p>
-    {{end}}
-    {{if or .Location .Website}}
-    <div id="user_info_items">
-        {{if .Location}}
-        <p class="user_info_location secondary_text">{{.Location}}</p>
         {{end}}
-        {{if .Website}}
-        <a href="{{.Website}}" target="_blank" rel="noopener noreferrer" class="user_info_website">{{.Website}}</a>
-        {{end}}
+        <div id="user_follows_bar">
+            <span id="follows"><span class="primary_text">{{.CrossUsers.Follows}}</span> <span
+                    class="secondary_text">Following</span></span>
+            <span id="followers"><span class="primary_text">{{.CrossUsers.Followers}}</span> <span
+                    class="secondary_text">Followers</span></span>
+        </div>
     </div>
     {{end}}
-    <div id="user_follows_bar">
-        <span id="follows"><span class="primary_text">{{.CrossUsers.Follows}}</span> <span
-                class="secondary_text">Following</span></span>
-        <span id="followers"><span class="primary_text">{{.CrossUsers.Followers}}</span> <span
-                class="secondary_text">Followers</span></span>
-    </div>
-    <div id="user_tweets_or_likes">
-        <a href="/{{.Username}}">Tweets</a>
-        <a href="/{{.Username}}/likes">Likes</a>
-    </div>
-</div>
-{{end}}

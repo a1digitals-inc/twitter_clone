@@ -66,6 +66,15 @@ type Conversation struct {
 	MostRecentDate string
 }
 
+type Notification struct {
+	TweetId int64
+	Text string
+	Username string
+	Retweeted bool
+	Liked bool
+	DisplayName string
+}
+
 var db *sql.DB
 
 func nullStringToString(nullString sql.NullString) string {
@@ -327,9 +336,28 @@ func EditUser(edits User) error {
 
 func CreateTweet(request TweetRequest) (int64, error) {
 	var id int64
-	err := db.QueryRow(`INSERT INTO tweets (text, user_id, image_url, parent_id) 
-		VALUES ($1, $2, $3, $4) RETURNING id`, 
-		request.Text, request.UserId, request.ImageURL, request.ParentId).Scan(&id)
+	var err error
+	if request.ParentId != 0 {
+		if request.ImageURL != "" {
+			err = db.QueryRow(`INSERT INTO tweets (text, user_id, image_url, parent_id) 
+				VALUES ($1, $2, $3, $4) RETURNING id`, 
+				request.Text, request.UserId, request.ImageURL, request.ParentId).Scan(&id)
+		} else {
+			err = db.QueryRow(`INSERT INTO tweets (text, user_id, parent_id) 
+				VALUES ($1, $2, $3) RETURNING id`, 
+				request.Text, request.UserId, request.ParentId).Scan(&id)
+		}
+	} else {
+		if request.ImageURL != "" {
+			err = db.QueryRow(`INSERT INTO tweets (text, user_id, image_url) 
+				VALUES ($1, $2, $3) RETURNING id`, 
+				request.Text, request.UserId, request.ImageURL).Scan(&id)
+		} else {
+			err = db.QueryRow(`INSERT INTO tweets (text, user_id) 
+				VALUES ($1, $2) RETURNING id`, 
+				request.Text, request.UserId).Scan(&id)
+		}
+	}
 	if err != nil {
 		log.Println("Query Error: ", err)
 		return 0, err
@@ -488,13 +516,62 @@ func GetConversations(userId int64) ([]Conversation, error) {
 		conversation := Conversation{
 			Id: id,
 			Text: text,
+			Name: nullStringToString(name),
 			OtherUserName: otherUsername,
 			OtherUserDisplayName: nullStringToString(otherUserDisplayName),
 			MostRecentDate: createdAt,
 		}
+		
 		conversations = append(conversations, conversation)
 	}
 	return conversations, nil
+}
+
+func GetNotifications(userId int64) ([]Notification, error) {
+	result, err := db.Query(`SELECT t.id, t.text,
+		r.user_id IS NOT NULL as retweeted, 
+		l.user_id IS NOT NULL as liked,
+		u.username, u.display_name
+		FROM tweets t
+		LEFT JOIN retweets r
+		ON r.tweet_id = t.id AND r.user_id != $1
+		LEFT JOIN likes l
+		ON l.tweet_id = t.id AND l.user_id != $1
+		INNER JOIN users u
+		ON u.id = l.user_id OR u.id = r.user_id
+		WHERE t.user_id = $1
+		ORDER BY l.created_at DESC, r.created_at DESC`, userId)
+	if err != nil && err != sql.ErrNoRows {
+		log.Println("Query Error: ", err)
+		return nil, err
+	}
+	defer result.Close()
+
+	var notifications []Notification
+	for result.Next() {
+		var id int64
+		var text, username string
+		var retweeted, liked bool
+		var displayName sql.NullString
+
+		err := result.Scan(&id, &text, &retweeted, &liked, &username, &displayName)
+		if err != nil {
+			log.Println("Scanning error: ", err)
+			break
+		}
+
+		notification := Notification{
+			TweetId: id,
+			Text: text,
+			Username: username,
+			Retweeted: retweeted,
+			Liked: liked,
+			DisplayName: nullStringToString(displayName),
+		}
+
+		notifications = append(notifications, notification)
+	}
+	return notifications, nil
 }
 
 func CreateFollow(followed, follower int64) (bool, error) {

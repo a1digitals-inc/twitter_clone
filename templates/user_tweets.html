@@ -1,16 +1,21 @@
 {{template "user" .}}
+<div id="user_tweets_or_likes">
+    <a class="current" href="/{{.Username}}">Tweets</a>
+    <a href="/{{.Username}}/likes">Likes</a>
+</div>
+</div>
 
 {{range .Tweets}}
 <div class="tweet">
     {{if ne .Username $.Username}}
     {{if ne $.Username $.CurrentUsername}}
     {{if $.DisplayName}}
-    <p class="retweeted_label secondary_text">{{$.DisplayName}} regweeted:</p>
+    <p class="retweeted_label secondary_text">{{$.DisplayName}} retweeted:</p>
     {{else}}
-    <p class="retweeted_label secondary_text">{{$.Username}} regweeted:</p>
+    <p class="retweeted_label secondary_text">{{$.Username}} retweeted:</p>
     {{end}}
     {{else}}
-    <p class="retweeted_label secondary_text">You regweeted:</p>
+    <p class="retweeted_label secondary_text">You retweeted:</p>
     {{end}}
     {{end}}
     <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a><span class="tweet_date secondary_text"> ·
@@ -26,12 +31,12 @@
         {{if .Retweeted}}
         <form action="/api/unretweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo regweet">
+            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo retweet">
         </form>
         {{else}}
         <form action="/api/retweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Regweet">
+            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Retweet">
         </form>
         {{end}}
         {{if .Liked}}

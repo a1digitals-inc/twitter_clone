@@ -4,17 +4,18 @@
 </div>
 {{range .Conversations}}
 <article class="conversation">
-    {{if .Name}}
-    <a href="/messages/{{.Id}}" class="conversation_username primary_text">{{.Name}}
+    <a href="/messages/{{.Id}}" class="conversation_username primary_text">
+        {{if .Name}}
+        {{.Name}}
         {{else}}
-        {{if .OtherDisplayName}}
-        <a href="/messages/{{.Id}}" class="conversation_username primary_text">{{.OtherDisplayName}}
-            {{else}}
-            <a href="/messages/{{.Id}}" class="conversation_username primary_text">{{.OtherUsername}}
-                {{end}}
-                {{end}}
-                <p>{{.Text}}</p>
-            </a>
+        {{if .OtherUserDisplayName}}
+        {{.OtherUserDisplayName}}
+        {{else}}
+        {{.OtherUserName}}
+        {{end}}
+        {{end}}
+    </a>
+    <p>{{.Text}}</p>
 </article>
 {{end}}
 {{template "home_footer" .}}

@@ -77,6 +77,13 @@ type MessagePage struct {
 	Title string
 }
 
+type NotificationsPage struct {
+	Notifications []model.Notification
+	CurrentUsername string
+	CurrentUserId int64
+	Title string
+}
+
 const (
 	LOGIN_COOKIE_NAME = "login"
 )
@@ -491,15 +498,55 @@ func ConversationHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	title := "Conversation"
+	for _, message := range messages {
+		if message.SenderId != currentUid {
+			if message.SenderDisplayName != "" {
+				title = message.SenderDisplayName
+			} else {
+				title = message.SenderUsername
+			}
+			break
+		}
+	}
+
 	data := MessagePage{
 		Messages: messages,
 		ConversationId: conversationId,
 		CurrentUserId: currentUid,
 		CurrentUsername: currentUsername,
-		Title: "Conversation",
+		Title: title,
 	}
 
 	templates.ExecuteTemplate(w, "message.html", data)
+	return
+}
+
+func NotificationsHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := session.Store.Get(r, LOGIN_COOKIE_NAME)
+
+	// Check if user is authenticated
+	currentUid, ok := session.Values["uid"].(int64)
+	if ok == false {
+		http.Redirect(w, r, "/login", http.StatusMovedPermanently)
+		return
+	}
+	currentUsername, _ := session.Values["username"].(string)
+
+	notifications, err := model.GetNotifications(currentUid)
+	if err != nil {
+		log.Println("Could not get notifications")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	data := NotificationsPage{
+		Notifications: notifications,
+		CurrentUserId: currentUid,
+		CurrentUsername: currentUsername,
+		Title: "Notifications",
+	}
+
+	templates.ExecuteTemplate(w, "notifications.html", data)
 	return
 }
 
@@ -520,6 +567,7 @@ func main() {
 	r.HandleFunc("/login", LoginHandler)
 	r.HandleFunc("/logout", LogoutHandler)
 	r.HandleFunc("/tweet/{tweet_id}", TweetHandler).Methods("GET")
+	r.HandleFunc("/notifications", NotificationsHandler).Methods("GET")
 	r.HandleFunc("/messages", MessagesHandler).Methods("GET")
 	r.HandleFunc("/messages/{user_a}-{user_b}", DMHandler).Methods("GET")
 	r.HandleFunc("/messages/{conversation_id}", ConversationHandler).Methods("GET")

@@ -1,5 +1,9 @@
 {{template "user" .}}
-
+<div id="user_tweets_or_likes">
+    <a href="/{{.Username}}">Tweets</a>
+    <a class="current" href="/{{.Username}}/likes">Likes</a>
+</div>
+</div>
 {{range .Tweets}}
 <div class="tweet">
     <a href="/{{.Username}}" class="tweet_username">{{.Username}}</a><span class="tweet_date secondary_text"> ·
@@ -15,12 +19,12 @@
         {{if .Retweeted}}
         <form action="/api/unretweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo regweet">
+            <input id="retweet_button" class="undo" type="image" src="/static/retweet_filled.png" alt="Undo retweet">
         </form>
         {{else}}
         <form action="/api/retweet" method="post">
             <input type="hidden" id="tweet_id" name="tweet_id" value="{{.Id}}">
-            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Regweet">
+            <input id="retweet_button" type="image" src="/static/retweet.png" alt="Retweet">
         </form>
         {{end}}
         {{if .Liked}}
