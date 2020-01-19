@@ -96,9 +96,14 @@ func nullInt64ToInt64(nullInt sql.NullInt64) int64 {
 
 func InitDB() {
     postgresUsername := os.Getenv("POSTGRES_USER")
-    postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-
-	connStr := fmt.Sprintf("postgres://%s:%s@postgres:5432/twitter?sslmode=disable", postgresUsername, postgresPassword)
+	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
+	
+	var connStr string
+	if postgresUsername == "" {
+		connStr = "postgres://postgres@db_postgres:5432/twitter?sslmode=disable"
+	} else {
+		connStr = fmt.Sprintf("postgres://%s:%s@postgres:5432/twitter?sslmode=disable", postgresUsername, postgresPassword)
+	}
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
