@@ -2,3 +2,5 @@
 main
 twitter_clone
 *.json
+secret.yaml
+web-deployment.yaml

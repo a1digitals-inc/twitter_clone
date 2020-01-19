@@ -3,6 +3,7 @@ package model
 import (
 	"log"
 	"fmt"
+    "os"
 	"database/sql"
 	_ "github.com/lib/pq"
 )
@@ -94,7 +95,10 @@ func nullInt64ToInt64(nullInt sql.NullInt64) int64 {
 }
 
 func InitDB() {
-	connStr := "postgres://postgres:postgres@localhost:5432/twitter?sslmode=disable"
+    postgresUsername := os.Getenv("POSTGRES_USER")
+    postgresPassword := os.Getenv("POSTGRES_PASSWORD")
+
+	connStr := fmt.Sprintf("postgres://%s:%s@postgres:5432/twitter?sslmode=disable", postgresUsername, postgresPassword)
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {

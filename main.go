@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"fmt"
+	"os"
 	"strconv"
 	"database/sql"
 	mux "github.com/gorilla/mux"
@@ -554,6 +555,8 @@ func main() {
 	model.InitDB()
 	api.Init()
 
+	port := ":" + os.Getenv("PORT")
+
 	r := mux.NewRouter()
 	s := r.PathPrefix("/api").Subrouter()
 	s.HandleFunc("/tweet", api.TweetHandler).Methods("POST")
@@ -575,5 +578,5 @@ func main() {
 	r.HandleFunc("/{username}/likes", UserLikesHandler).Methods("GET")
 	r.HandleFunc("/{username}/edit", UserEditHandler).Methods("GET")
 	r.HandleFunc("/", IndexHandler).Methods("GET")
-	log.Fatal(http.ListenAndServe(":8000", r))
+	log.Fatal(http.ListenAndServe(port, r))
 }
