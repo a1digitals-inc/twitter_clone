@@ -626,20 +626,20 @@ a.secondary_button {
         min-height: 100vh;
     }
 
-    #utility_block {
+    #login_container #utility_block {
         flex-direction: column-reverse;
     }
 
-    #login_form {
+    #login_container #login_form {
         flex-direction: column;
         width: 90%;
     }
 
-    #signup_block {
+    #login_container #signup_block {
         width: 90%;
     }
 
-    #login_button {
+    #login_container #login_form #login_button {
         align-self: flex-start;
     }
 }
