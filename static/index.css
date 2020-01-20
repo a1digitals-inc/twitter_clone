@@ -620,4 +620,26 @@ a.secondary_button {
         padding: 0;
         align-items: center;
     }
+
+    #login_container {
+        flex-direction: column-reverse;
+        min-height: 100vh;
+    }
+
+    #utility_block {
+        flex-direction: column-reverse;
+    }
+
+    #login_form {
+        flex-direction: column;
+        width: 90%;
+    }
+
+    #signup_block {
+        width: 90%;
+    }
+
+    #login_button {
+        align-self: flex-start;
+    }
 }
