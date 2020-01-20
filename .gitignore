@@ -4,3 +4,4 @@ twitter_clone
 *.json
 secret.yaml
 web-deployment.yaml
+web-secret.yaml
