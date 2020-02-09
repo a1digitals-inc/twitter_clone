@@ -100,7 +100,7 @@ func InitDB() {
 	
 	var connStr string
 	if postgresUsername == "" {
-		connStr = "postgres://postgres@db_postgres:5432/twitter?sslmode=disable"
+		connStr = os.Getenv("DATABASE_URL")
 	} else {
 		connStr = fmt.Sprintf("postgres://%s:%s@postgres:5432/twitter?sslmode=disable", postgresUsername, postgresPassword)
 	}
